@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaPaperPlane, FaCheck } from 'react-icons/fa';
-import { motion } from 'framer-motion';
+import { Mail, Phone, MapPin, Send, Check, Clock, Users, Shield, Heart } from 'lucide-react';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -45,195 +44,216 @@ const ContactPage = () => {
     }, 1500);
   };
 
-  // Animation variants
-  const cardVariants = {
-    offscreen: { y: 50, opacity: 0 },
-    onscreen: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        bounce: 0.4,
-        duration: 0.8
-      }
-    }
-  };
-
   return (
-    <div className="pt-24 pb-16 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Get In Touch</h1>
-          <div className="w-20 h-1 bg-primary-500 mx-auto mb-6"></div>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            We're here to help you find your perfect home. Whether you have questions about properties, 
-            neighborhoods, or the buying process, our team is ready to assist you.
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-100">
+      {/* Hero Section */}
+      <div className="relative pt-20 pb-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-teal-500/20"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-teal-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
+        
+        <div className="relative container mx-auto px-6 text-center">
+          <div className="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-blue-600 font-medium text-sm mb-6 shadow-lg">
+            <Heart className="w-4 h-4 mr-2" />
+            We're here to help
+          </div>
+          
+          <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-gray-900 via-blue-500 to-teal-500 bg-clip-text text-transparent mb-6 leading-tight">
+            Get In Touch
+          </h1>
+          
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
+            Looking for the perfect room? Our expert team is here to guide you every step of the way on your rental journey.
           </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <motion.div 
-            variants={cardVariants}
-            initial="offscreen"
-            whileInView="onscreen"
-            viewport={{ once: true, amount: 0.2 }}
-            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-8 text-center"
-          >
-            <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaPhone className="text-primary-600 text-xl" />
+          
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+            <div className="flex items-center">
+              <Clock className="w-4 h-4 mr-2 text-blue-500" />
+              24/7 Support
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">Phone</h3>
-            <p className="text-gray-600 mb-1">+977-9861774657</p>
-            <p className="text-gray-600">+977-9809897812</p>
-            <a href="tel:+97714123456" className="mt-4 inline-block text-primary-600 hover:text-primary-700 font-medium">
-              Call Now
-            </a>
-          </motion.div>
-
-          <motion.div 
-            variants={cardVariants}
-            initial="offscreen"
-            whileInView="onscreen"
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-8 text-center"
-          >
-            <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaEnvelope className="text-primary-600 text-xl" />
+            <div className="flex items-center">
+              <Users className="w-4 h-4 mr-2 text-green-500" />
+              Expert Team
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">Email</h3>
-            <p className="text-gray-600 mb-1">info@sajilobasai.com</p>
-            <p className="text-gray-600">shreejanlama0@.com</p>
-            <a href="mailto:info@sajilobasai.com" className="mt-4 inline-block text-primary-600 hover:text-primary-700 font-medium">
-              Email Us
-            </a>
-          </motion.div>
-
-          <motion.div 
-            variants={cardVariants}
-            initial="offscreen"
-            whileInView="onscreen"
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-8 text-center"
-          >
-            <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaMapMarkerAlt className="text-primary-600 text-xl" />
+            <div className="flex items-center">
+              <Shield className="w-4 h-4 mr-2 text-teal-500" />
+              Trusted Service
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">Office</h3>
-            <p className="text-gray-600 mb-1">Kathmandu, Nepal</p>
-            <p className="text-gray-600">Open: 9:00 AM - 6:00 PM</p>
-            <a href="#" className="mt-4 inline-block text-primary-600 hover:text-primary-700 font-medium">
-              Get Directions
-            </a>
-          </motion.div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 -mt-20 relative z-10">
+        {/* Contact Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-20">
+          {[
+            {
+              icon: Phone,
+              title: "Call Us",
+              subtitle: "Speak with our experts",
+              content: ["+977-9861774657", "+977-9809897812"],
+              action: "Call Now",
+              color: "blue",
+              delay: 0,
+              onClick: () => window.location.href = "tel:+9779861774657"
+            },
+            {
+              icon: Mail,
+              title: "Email Us",
+              subtitle: "Drop us a message",
+              content: ["info@sajilobasai.com", "shreejanlama0@gmail.com"],
+              action: "Send Email",
+              color: "green",
+              delay: 100,
+              onClick: () => window.open("mailto:info@sajilobasai.com", "_blank")
+            },
+            {
+              icon: MapPin,
+              title: "Visit Us",
+              subtitle: "Come see us in person",
+              content: ["chabahil, Kathmandu, Nepal", "Near St Lawrence College"],
+              action: "Get Directions",
+              color: "teal",
+              delay: 200,
+              onClick: () => window.open("https://www.google.com/maps?q=chabahil+Kathmandu+Nepal", "_blank")
+            }
+          ].map((item, index) => (
+            <div
+              key={index}
+              className="group relative bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border border-white/20"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/10 rounded-2xl"></div>
+              <div className="relative">
+                <div className={`w-12 h-12 bg-gradient-to-br from-${item.color}-400 to-${item.color}-600 rounded-xl flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform duration-300`}>
+                  <item.icon className="w-5 h-5 text-white" />
+                </div>
+                
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{item.title}</h3>
+                <p className="text-gray-600 text-sm mb-3">{item.subtitle}</p>
+                
+                <div className="space-y-1 mb-4">
+                  {item.content.map((line, i) => (
+                    <p key={i} className="text-gray-700 text-sm font-medium">{line}</p>
+                  ))}
+                </div>
+                
+                <button 
+                  onClick={item.onClick}
+                  className={`text-${item.color}-600 hover:text-${item.color}-700 font-medium text-sm flex items-center group-hover:translate-x-1 transition-transform duration-300`}
+                >
+                  {item.action}
+                  <Send className="w-3 h-3 ml-2" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="bg-white rounded-xl shadow-lg overflow-hidden"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2">
-            <div className="p-10">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Send us a Message</h2>
-              <p className="text-gray-600 mb-8">Fill out the form below and we'll get back to you shortly.</p>
+        {/* Main Contact Form */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-white/20 mb-20">
+          <div className="grid lg:grid-cols-5">
+            {/* Form Section */}
+            <div className="lg:col-span-3 p-8 md:p-10">
+              <div className="mb-8">
+                <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-500 to-teal-500 bg-clip-text text-transparent mb-3">
+                  Send us a Message
+                </h2>
+                <p className="text-gray-600">
+                  Fill out the form below and we'll get back to you within 24 hours.
+                </p>
+              </div>
               
               {submitted ? (
-                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-lg text-center"
-                >
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 text-center">
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaCheck className="text-green-600 text-2xl" />
+                    <Check className="text-green-600 w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">Message Sent Successfully!</h3>
-                  <p className="mb-4">Thank you for contacting us. We'll respond within 24 hours.</p>
+                  <h3 className="text-xl font-bold text-green-800 mb-2">Message Sent!</h3>
+                  <p className="text-green-700 mb-4">
+                    Thank you for reaching out. We'll respond within 24 hours.
+                  </p>
                   <button 
                     onClick={() => setSubmitted(false)}
-                    className="text-green-600 hover:text-green-700 font-medium underline"
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200 text-sm"
                   >
-                    Send another message
+                    Send Another Message
                   </button>
-                </motion.div>
+                </div>
               ) : (
-                <form onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Your Name
+                      </label>
                       <input
                         type="text"
-                        id="name"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
-                        placeholder="full name"
+                        className="w-full px-4 py-3 bg-gray-50/50 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:bg-white transition-all duration-200 outline-none text-gray-900 text-sm"
+                        placeholder="John Doe"
                         required
                       />
                     </div>
                     
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Email Address
+                      </label>
                       <input
                         type="email"
-                        id="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
-                        placeholder="your@email.com"
+                        className="w-full px-4 py-3 bg-gray-50/50 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:bg-white transition-all duration-200 outline-none text-gray-900 text-sm"
+                        placeholder="john@example.com"
                         required
                       />
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Phone Number
+                      </label>
                       <input
                         type="tel"
-                        id="phone"
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
+                        className="w-full px-4 py-3 bg-gray-50/50 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:bg-white transition-all duration-200 outline-none text-gray-900 text-sm"
                         placeholder="+977 98XXXXXXXX"
                       />
                     </div>
                     
-                    <div>
-                      <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Subject
+                      </label>
                       <input
                         type="text"
-                        id="subject"
                         name="subject"
                         value={formData.subject}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
+                        className="w-full px-4 py-3 bg-gray-50/50 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:bg-white transition-all duration-200 outline-none text-gray-900 text-sm"
                         placeholder="How can we help?"
                         required
                       />
                     </div>
                   </div>
                   
-                  <div className="mb-8">
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Your Message
+                    </label>
                     <textarea
-                      id="message"
                       name="message"
                       value={formData.message}
                       onChange={handleChange}
                       rows="5"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
+                      className="w-full px-4 py-3 bg-gray-50/50 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:bg-white transition-all duration-200 outline-none text-gray-900 text-sm resize-none"
                       placeholder="Tell us about your real estate needs..."
                       required
                     ></textarea>
@@ -242,19 +262,20 @@ const ContactPage = () => {
                   <button 
                     type="submit" 
                     disabled={isLoading}
-                    className={`w-full flex items-center justify-center px-6 py-3 rounded-lg text-white font-medium transition ${isLoading ? 'bg-primary-400 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700'}`}
+                    className={`w-full py-3 px-6 rounded-lg font-semibold text-base transition-all duration-200 flex items-center justify-center space-x-2 ${
+                      isLoading 
+                        ? 'bg-gray-400 cursor-not-allowed text-white' 
+                        : 'bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg'
+                    }`}
                   >
                     {isLoading ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Processing...
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Processing...</span>
                       </>
                     ) : (
                       <>
-                        <FaPaperPlane className="mr-2" />
+                        <Send className="w-4 h-4" />
                         <span>Send Message</span>
                       </>
                     )}
@@ -263,63 +284,47 @@ const ContactPage = () => {
               )}
             </div>
             
-            <div className="hidden lg:block relative">
-              <div 
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ 
-                  backgroundImage: 'url("https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1473&q=80")'
-                }}
-              >
-                <div className="absolute inset-0 bg-primary-600 bg-opacity-20"></div>
-              </div>
-              <div className="relative h-full p-10 flex flex-col justify-end">
-                <h3 className="text-2xl font-bold text-white mb-4">Why Contact Us?</h3>
-                <ul className="space-y-3">
-                  <li className="flex items-start">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
+            {/* Feature Section */}
+            <div className="lg:col-span-2 bg-gradient-to-br from-blue-500 to-teal-500 p-8 md:p-10 flex flex-col justify-center">
+              <h3 className="text-2xl font-bold text-white mb-6">Why Choose Us?</h3>
+              
+              <div className="space-y-4">
+                {[
+                  {
+                    icon: Users,
+                    title: "Expert Team",
+                    desc: "Experienced professionals ready to help"
+                  },
+                  {
+                    icon: Clock,
+                    title: "Quick Response",
+                    desc: "We respond to all inquiries within 2 hours"
+                  },
+                  {
+                    icon: Shield,
+                    title: "Trusted Service",
+                    desc: "Thousands of satisfied customers"
+                  },
+                  {
+                    icon: Heart,
+                    title: "Personal Touch",
+                    desc: "Customized solutions for your needs"
+                  }
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-start space-x-3 p-3 bg-white/10 rounded-xl backdrop-blur-sm">
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <feature.icon className="w-5 h-5 text-white" />
                     </div>
-                    <span className="ml-3 text-white">Personalized property recommendations</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
+                    <div>
+                      <h4 className="text-white font-bold mb-1">{feature.title}</h4>
+                      <p className="text-teal-100 text-xs leading-relaxed">{feature.desc}</p>
                     </div>
-                    <span className="ml-3 text-white">Expert advice on neighborhoods</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                    <span className="ml-3 text-white">24/7 customer support</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                    <span className="ml-3 text-white">No obligation consultations</span>
-                  </li>
-                </ul>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
