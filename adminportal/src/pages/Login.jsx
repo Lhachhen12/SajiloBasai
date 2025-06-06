@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiMail, FiLock, FiAlertCircle, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiAlertCircle, FiEye, FiEyeOff, FiLogIn } from 'react-icons/fi';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -41,31 +41,40 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-800 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-teal-500 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">SajiloBasai</h1>
-          <p className="text-primary-100">Admin Dashboard</p>
+          <div className="flex justify-center">
+            <div className="bg-white/10 p-4 rounded-full backdrop-blur-sm">
+              <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+          </div>
+          <h1 className="mt-6 text-4xl font-extrabold text-white mb-2 tracking-tight">
+            Sajilo<span className="text-blue-200">Basai</span>
+          </h1>
+          <p className="text-blue-100 text-lg font-light">Admin Dashboard</p>
         </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-2xl sm:rounded-lg sm:px-10">
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 py-10 px-6 shadow-2xl sm:rounded-2xl sm:px-10 text-white">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-center">
-                <FiAlertCircle className="h-5 w-5 text-red-500 mr-3" />
-                <span className="text-sm text-red-700">{error}</span>
+              <div className="bg-red-400/20 border border-red-400/30 rounded-xl p-4 flex items-center animate-fade-in">
+                <FiAlertCircle className="h-5 w-5 text-red-300 mr-3" />
+                <span className="text-sm text-red-100">{error}</span>
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-blue-100">
                 Email address
               </label>
-              <div className="mt-1 relative">
+              <div className="mt-1 relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-gray-400" />
+                  <FiMail className="h-5 w-5 text-blue-300" />
                 </div>
                 <input
                   id="email"
@@ -75,19 +84,19 @@ const Login = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="bg-white/5 backdrop-blur-sm appearance-none block w-full pl-10 px-3 py-3 border border-white/20 rounded-lg shadow-sm placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
                   placeholder="Enter your email"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-blue-100">
                 Password
               </label>
-              <div className="mt-1 relative">
+              <div className="mt-1 relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-gray-400" />
+                  <FiLock className="h-5 w-5 text-blue-300" />
                 </div>
                 <input
                   id="password"
@@ -97,7 +106,7 @@ const Login = () => {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="bg-white/5 backdrop-blur-sm appearance-none block w-full pl-10 pr-10 py-3 border border-white/20 rounded-lg shadow-sm placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
                   placeholder="Enter your password"
                 />
                 <button
@@ -106,9 +115,9 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                    <FiEyeOff className="h-5 w-5 text-blue-300 hover:text-blue-200 transition-colors" />
                   ) : (
-                    <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                    <FiEye className="h-5 w-5 text-blue-300 hover:text-blue-200 transition-colors" />
                   )}
                 </button>
               </div>
@@ -120,15 +129,15 @@ const Login = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/30 rounded bg-white/10"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-blue-100">
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
+                <a href="#" className="font-medium text-blue-300 hover:text-blue-200 transition-colors">
                   Forgot password?
                 </a>
               </div>
@@ -138,28 +147,45 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                  <FiLogIn className={`h-5 w-5 text-blue-300 group-hover:text-blue-200 transition-colors ${loading ? 'opacity-0' : 'opacity-100'}`} />
+                </span>
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign in'
+                )}
               </button>
             </div>
           </form>
 
-          <div className="mt-6">
+          <div className="mt-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t border-white/20" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo Credentials</span>
+                <span className="px-2 bg-transparent text-blue-200">Demo Credentials</span>
               </div>
             </div>
-            <div className="mt-4 text-center text-sm text-gray-600">
-              <p>Email: admin@sajilobasai.com</p>
-              <p>Password: admin123</p>
+            <div className="mt-4 text-center text-sm text-blue-200 bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+              <p className="font-medium">Email: admin@sajilobasai.com</p>
+              <p className="font-medium">Password: admin123</p>
             </div>
           </div>
         </div>
+      </div>
+      
+      <div className="mt-8 text-center text-sm text-white/50">
+        <p>© {new Date().getFullYear()} SajiloBasai. All rights reserved.</p>
       </div>
     </div>
   );
