@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { FiSave, FiUser, FiHome, FiImage, FiMapPin, FiDollarSign, FiMaximize } from 'react-icons/fi';
+import { FiSave, FiUser, FiHome, FiImage, FiMapPin, FiDollarSign, FiMaximize, FiPlusCircle } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import toast from 'react-hot-toast';
 
-const AddProperty = () => {
+const AddListings = ({ isDark }) => {
   const navigate = useNavigate();
   const { addProperty } = useAppContext();
   
@@ -19,7 +19,7 @@ const AddProperty = () => {
     title: '',
     description: '',
     price: '',
-    type: 'Apartment',
+    type: 'Flat', // Default to Flat as per requirements
     location: '',
     size: '',
     imageUrl: '',
@@ -67,7 +67,7 @@ const AddProperty = () => {
   const handleSaveProperty = async (e) => {
     e.preventDefault();
     
-    if (!propertyData.title || !propertyData.price || !propertyData.location) {
+    if (!propertyData.title || !propertyData.price || !propertyData.location || !sellerData.name || !sellerData.email || !sellerData.phone) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -81,7 +81,7 @@ const AddProperty = () => {
       };
       
       addProperty(newProperty);
-      toast.success('Property created successfully!', {
+      toast.success('Listing created successfully!', {
         duration: 4000,
         position: 'top-right',
         style: {
@@ -94,7 +94,7 @@ const AddProperty = () => {
       });
       navigate('/listings');
     } catch (error) {
-      toast.error('Failed to create property', {
+      toast.error('Failed to create listing', {
         duration: 4000,
         position: 'top-right',
         style: {
@@ -108,26 +108,47 @@ const AddProperty = () => {
     }
   };
 
+  // Styles for dark/light mode
+  const inputStyles = `w-full px-4 py-3 rounded-lg border transition-colors ${
+    isDark 
+      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+      : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+  } focus:ring-2 focus:ring-blue-500/20`;
+
+  const cardStyles = `rounded-xl shadow-lg p-6 transition-colors ${
+    isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+  } border`;
+
+  const labelStyles = `block text-sm font-medium mb-2 ${
+    isDark ? 'text-gray-300' : 'text-gray-700'
+  }`;
+
+  const sectionTitleStyles = `text-lg font-medium ${
+    isDark ? 'text-white' : 'text-gray-900'
+  }`;
+
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Add New Property</h1>
-        <p className="text-sm text-gray-500">Create a new property listing with seller details</p>
+      <div className="mb-8">
+        <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
+          Add New Listing
+        </h1>
+        <div className="h-1 w-24 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full"></div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Seller Details Form */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className={cardStyles}>
           <div className="flex items-center mb-6">
-            <div className="p-2 bg-primary-50 rounded-lg">
-              <FiUser className="h-6 w-6 text-primary-600" />
+            <div className={`p-3 rounded-xl bg-gradient-to-r from-blue-500 to-teal-500 shadow-lg`}>
+              <FiUser className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-lg font-medium ml-3">Seller Details</h2>
+            <h2 className={`${sectionTitleStyles} ml-3`}>Seller Details</h2>
           </div>
 
           <form className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={labelStyles}>
                 Seller Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -135,13 +156,13 @@ const AddProperty = () => {
                 name="name"
                 value={sellerData.name}
                 onChange={handleSellerChange}
-                className="form-input w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                className={inputStyles}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={labelStyles}>
                 Email <span className="text-red-500">*</span>
               </label>
               <input
@@ -149,13 +170,13 @@ const AddProperty = () => {
                 name="email"
                 value={sellerData.email}
                 onChange={handleSellerChange}
-                className="form-input w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                className={inputStyles}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={labelStyles}>
                 Phone <span className="text-red-500">*</span>
               </label>
               <input
@@ -163,7 +184,7 @@ const AddProperty = () => {
                 name="phone"
                 value={sellerData.phone}
                 onChange={handleSellerChange}
-                className="form-input w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                className={inputStyles}
                 required
               />
             </div>
@@ -171,17 +192,17 @@ const AddProperty = () => {
         </div>
 
         {/* Property Details Form */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
+        <div className={`lg:col-span-2 ${cardStyles}`}>
           <div className="flex items-center mb-6">
-            <div className="p-2 bg-primary-50 rounded-lg">
-              <FiHome className="h-6 w-6 text-primary-600" />
+            <div className={`p-3 rounded-xl bg-gradient-to-r from-blue-500 to-teal-500 shadow-lg`}>
+              <FiHome className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-lg font-medium ml-3">Property Details</h2>
+            <h2 className={`${sectionTitleStyles} ml-3`}>Listing Details</h2>
           </div>
 
           <form onSubmit={handleSaveProperty} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={labelStyles}>
                 Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -189,13 +210,13 @@ const AddProperty = () => {
                 name="title"
                 value={propertyData.title}
                 onChange={handlePropertyChange}
-                className="form-input w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                className={inputStyles}
                 required
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={labelStyles}>
                 Description
               </label>
               <textarea
@@ -203,13 +224,13 @@ const AddProperty = () => {
                 value={propertyData.description}
                 onChange={handlePropertyChange}
                 rows="4"
-                className="form-textarea w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                className={`${inputStyles} min-h-[120px]`}
               />
             </div>
 
             <div className="flex items-center space-x-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={labelStyles}>
                   <FiDollarSign className="inline-block mr-1" />
                   Price <span className="text-red-500">*</span>
                 </label>
@@ -218,13 +239,13 @@ const AddProperty = () => {
                   name="price"
                   value={propertyData.price}
                   onChange={handlePropertyChange}
-                  className="form-input w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                  className={inputStyles}
                   required
                 />
               </div>
 
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={labelStyles}>
                   <FiMaximize className="inline-block mr-1" />
                   Size (sqft)
                 </label>
@@ -233,30 +254,29 @@ const AddProperty = () => {
                   name="size"
                   value={propertyData.size}
                   onChange={handlePropertyChange}
-                  className="form-input w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                  className={inputStyles}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={labelStyles}>
                 Property Type
               </label>
               <select
                 name="type"
                 value={propertyData.type}
                 onChange={handlePropertyChange}
-                className="form-select w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                className={inputStyles}
               >
-                <option value="Room">Room</option>
                 <option value="Flat">Flat</option>
-                <option value="House">House</option>
+                <option value="Room">Room</option>
                 <option value="Apartment">Apartment</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={labelStyles}>
                 <FiMapPin className="inline-block mr-1" />
                 Location <span className="text-red-500">*</span>
               </label>
@@ -265,13 +285,13 @@ const AddProperty = () => {
                 name="location"
                 value={propertyData.location}
                 onChange={handlePropertyChange}
-                className="form-input w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                className={inputStyles}
                 required
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={labelStyles}>
                 <FiImage className="inline-block mr-1" />
                 Image URL
               </label>
@@ -280,13 +300,13 @@ const AddProperty = () => {
                 name="imageUrl"
                 value={propertyData.imageUrl}
                 onChange={handlePropertyChange}
-                className="form-input w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                className={inputStyles}
                 placeholder="https://example.com/image.jpg"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className={labelStyles}>
                 Amenities
               </label>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -295,11 +315,13 @@ const AddProperty = () => {
                     key={amenity}
                     type="button"
                     onClick={() => handleAmenityToggle(amenity)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                      ${propertyData.amenities.includes(amenity)
-                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-200'
-                        : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
-                      }`}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      propertyData.amenities.includes(amenity)
+                        ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                        : isDark 
+                          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                   >
                     {amenity}
                   </button>
@@ -308,7 +330,7 @@ const AddProperty = () => {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className={labelStyles}>
                 Features
               </label>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -317,11 +339,13 @@ const AddProperty = () => {
                     key={feature}
                     type="button"
                     onClick={() => handleFeatureToggle(feature)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                      ${propertyData.features.includes(feature)
-                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-200'
-                        : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
-                      }`}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      propertyData.features.includes(feature)
+                        ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
+                        : isDark 
+                          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                   >
                     {feature}
                   </button>
@@ -329,13 +353,13 @@ const AddProperty = () => {
               </div>
             </div>
 
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 pt-4">
               <button
                 type="submit"
-                className="w-full flex items-center justify-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                className="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-lg hover:from-blue-600 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <FiSave className="h-5 w-5 mr-2" />
-                Save Property
+                Save Listing
               </button>
             </div>
           </form>
@@ -345,4 +369,4 @@ const AddProperty = () => {
   );
 };
 
-export default AddProperty;
+export default AddListings;

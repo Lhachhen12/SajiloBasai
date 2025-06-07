@@ -1,36 +1,76 @@
-import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
-const Layout = ({ sidebarOpen, toggleSidebar }) => {
+const Layout = ({ sidebarOpen, toggleSidebar, isDark, toggleDark }) => {
+  const navigate = useNavigate();
+
   useEffect(() => {
-    const handleRouteChange = () => {
-      if (window.innerWidth < 768 && sidebarOpen) {
-        toggleSidebar();
+    const checkScreenSize = () => {
+      if (window.innerWidth < 768) {
+        toggleSidebar(false);
+      } else {
+        toggleSidebar(true);
       }
     };
 
-    window.addEventListener('navigate', handleRouteChange);
+    // Initial check
+    checkScreenSize();
+
+    // Add event listener
+    window.addEventListener('resize', checkScreenSize);
     
+    // Cleanup
     return () => {
-      window.removeEventListener('navigate', handleRouteChange);
+      window.removeEventListener('resize', checkScreenSize);
     };
-  }, [sidebarOpen, toggleSidebar]);
+  }, [toggleSidebar]);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
+    }
+  }, [isDark]);
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+    <div className={`flex h-screen ${isDark ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-300`}>
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        toggleSidebar={toggleSidebar} 
+        isDark={isDark}
+        navigate={navigate}
+      />
       
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'}`}>
-        <Topbar toggleSidebar={toggleSidebar} />
+      <div className={`
+        flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out
+        ${sidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}
+      `}>
+        <Topbar 
+          toggleSidebar={toggleSidebar} 
+          isDark={isDark} 
+          toggleDark={toggleDark}
+          navigate={navigate}
+        />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pt-4">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            <Outlet context={{ isDark }} />
+          </div>
         </main>
         
-        <footer className="bg-white p-4 border-t border-gray-200 text-center text-xs text-gray-500">
-          &copy; {new Date().getFullYear()} RoomFinder Admin Dashboard
+        <footer className={`
+          p-4 border-t text-center text-sm backdrop-blur-xl transition-colors duration-300
+          ${isDark 
+            ? 'bg-gray-900/95 border-gray-700 text-gray-400' 
+            : 'bg-white/95 border-gray-200 text-gray-500'
+          }
+        `}>
+          &copy; {new Date().getFullYear()} SajiloBasai Admin Dashboard. All rights reserved.
         </footer>
       </div>
     </div>

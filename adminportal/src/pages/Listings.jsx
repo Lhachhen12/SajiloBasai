@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import ListingTable from '../components/listings/ListingTable';
 import { getListings } from '../utils/adminApi';
-import { FiHome, FiPlusCircle } from 'react-icons/fi';
+import { FiHome, FiPlusCircle, FiTrendingUp, FiDollarSign, FiClock } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
 
-const Listings = () => {
+const Listings = ({ isDark }) => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,90 +26,133 @@ const Listings = () => {
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <svg className="animate-spin h-10 w-10 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>
+            <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-4 border-transparent border-t-blue-500 animate-spin"></div>
+          </div>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Loading listings...
+          </p>
+        </div>
       </div>
     );
   }
 
+  const activeListings = listings.filter(listing => listing.status === 'Active').length;
+  const pendingListings = listings.filter(listing => listing.status === 'Pending').length;
+  const averagePrice = Math.floor(
+    listings.reduce((sum, item) => sum + item.price, 0) / 
+    (listings.length || 1)
+  );
+
+  const stats = [
+    {
+      title: 'Total Listings',
+      value: listings.length,
+      icon: FiHome,
+      gradient: 'from-blue-500 to-cyan-500',
+      bgColor: isDark ? 'bg-blue-900/20' : 'bg-blue-50',
+      borderColor: isDark ? 'border-blue-800' : 'border-blue-100',
+      textColor: isDark ? 'text-blue-400' : 'text-blue-600'
+    },
+    {
+      title: 'Active Listings',
+      value: activeListings,
+      icon: FiTrendingUp,
+      gradient: 'from-green-500 to-emerald-500',
+      bgColor: isDark ? 'bg-green-900/20' : 'bg-green-50',
+      borderColor: isDark ? 'border-green-800' : 'border-green-100',
+      textColor: isDark ? 'text-green-400' : 'text-green-600'
+    },
+    {
+      title: 'Pending Approval',
+      value: pendingListings,
+      icon: FiClock,
+      gradient: 'from-amber-500 to-orange-500',
+      bgColor: isDark ? 'bg-amber-900/20' : 'bg-amber-50',
+      borderColor: isDark ? 'border-amber-800' : 'border-amber-100',
+      textColor: isDark ? 'text-amber-400' : 'text-amber-600'
+    },
+    {
+      title: 'Average Price',
+      value: `Rs. ${averagePrice.toLocaleString()}`,
+      icon: FiDollarSign,
+      gradient: 'from-purple-500 to-pink-500',
+      bgColor: isDark ? 'bg-purple-900/20' : 'bg-purple-50',
+      borderColor: isDark ? 'border-purple-800' : 'border-purple-100',
+      textColor: isDark ? 'text-purple-400' : 'text-purple-600'
+    }
+  ];
+
   return (
-    <div>
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Listings Management</h1>
-          <p className="text-sm text-gray-500">View and manage property listings</p>
+          <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Listings Management
+          </h1>
+          <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'} mt-2`}>
+            Monitor and manage all property listings with comprehensive insights
+          </p>
         </div>
         
-        <button className="mt-4 sm:mt-0 btn-primary flex items-center">
-          <FiPlusCircle className="mr-2 h-4 w-4" />
-          Add New Listing
-        </button>
+        {/* Decorative Element */}
+        <div className="h-1 w-24 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full"></div>
+        
+        {/* Add Listing Button */}
+        <div className="flex justify-end">
+  <Link to="/add-listings">
+    <button className="btn-primary flex items-center bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white">
+      <FiPlusCircle className="mr-2 h-4 w-4" />
+      Add New Listing
+    </button>
+  </Link>
+</div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => {
+          const IconComponent = stat.icon;
+          return (
+            <div
+              key={index}
+              className={`${stat.bgColor} ${stat.borderColor} border rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:scale-105`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-medium ${stat.textColor} mb-2`}>
+                    {stat.title}
+                  </p>
+                  <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {stat.value}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl bg-gradient-to-r ${stat.gradient} shadow-lg`}>
+                  <IconComponent className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
       
-      <div className="bg-white rounded-lg shadow-card p-6">
-        <div className="mb-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="dashboard-card bg-blue-50 border border-blue-100">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-100 mr-4">
-                <FiHome className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-blue-600">Total Listings</p>
-                <p className="text-xl font-bold">{listings.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="dashboard-card bg-green-50 border border-green-100">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-green-100 mr-4">
-                <FiHome className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-green-600">Active</p>
-                <p className="text-xl font-bold">
-                  {listings.filter(listing => listing.status === 'Active').length}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="dashboard-card bg-amber-50 border border-amber-100">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-amber-100 mr-4">
-                <FiHome className="h-6 w-6 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-amber-600">Pending</p>
-                <p className="text-xl font-bold">
-                  {listings.filter(listing => listing.status === 'Pending').length}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="dashboard-card bg-indigo-50 border border-indigo-100">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-indigo-100 mr-4">
-                <FiHome className="h-6 w-6 text-indigo-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-indigo-600">Average Price</p>
-                <p className="text-xl font-bold">
-                  $
-                  {Math.floor(
-                    listings.reduce((sum, item) => sum + item.price, 0) / 
-                    (listings.length || 1)
-                  )}
-                </p>
-              </div>
-            </div>
-          </div>
+      {/* Listings Table */}
+      <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-xl border ${isDark ? 'border-gray-700' : 'border-gray-200'} overflow-hidden`}>
+        <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700 bg-gray-900/50' : 'border-gray-200 bg-gray-50/50'}`}>
+          <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            All Listings
+          </h2>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+            Manage property listings, status, and details
+          </p>
         </div>
         
-        <ListingTable listings={listings} />
+        <div className="p-6">
+          <ListingTable listings={listings} isDark={isDark} />
+        </div>
       </div>
     </div>
   );
