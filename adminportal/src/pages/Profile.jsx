@@ -90,30 +90,6 @@ const Profile = () => {
             </div>
           </div>
           
-          <div className="dashboard-card">
-            <h3 className="text-lg font-medium mb-4">API Access</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Use API keys to connect external services to your admin account.
-            </p>
-            <button className="btn-outline w-full">
-              Generate API Key
-            </button>
-          </div>
-          
-          <div className="dashboard-card">
-            <h3 className="text-lg font-medium mb-4">Danger Zone</h3>
-            <div className="space-y-4">
-              <div className="p-4 border border-red-200 rounded-md bg-red-50">
-                <h4 className="text-sm font-medium text-red-800">Delete Account</h4>
-                <p className="text-xs text-red-600 mt-1">
-                  Once you delete your account, there is no going back. Please be certain.
-                </p>
-                <button className="mt-3 px-4 py-2 bg-white border border-red-300 rounded text-red-600 text-sm hover:bg-red-50">
-                  Delete Account
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

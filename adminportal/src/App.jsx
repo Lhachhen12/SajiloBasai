@@ -65,7 +65,7 @@ function App() {
             <Route path="add-booking" element={<AddBooking isDark={isDark} />} />
             <Route path="bookings" element={<Bookings isDark={isDark} />} />
             <Route path="analytics" element={<Analytics isDark={isDark} />} />
-            <Route path="pages" element={<Pages isDark={isDark} />} />
+            <Route path="pages/*" element={<Pages isDark={isDark} />} />
             <Route path="feedback" element={<Feedback isDark={isDark} />} />
             <Route path="contact" element={<Contact isDark={isDark} />} />
             <Route path="profile" element={<Profile isDark={isDark} />} />
