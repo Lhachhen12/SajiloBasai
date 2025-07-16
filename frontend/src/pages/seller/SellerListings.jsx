@@ -69,13 +69,13 @@ const SellerListings = () => {
   };
 
   // Format price
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
-    }).format(price);
-  };
+ const formatPrice = (price) => {
+  return new Intl.NumberFormat('ne-NP', {
+    style: 'currency',
+    currency: 'NPR',
+    maximumFractionDigits: 0
+  }).format(price);
+};
 
   // Handle delete property
   const handleDelete = async () => {
@@ -253,13 +253,6 @@ const SellerListings = () => {
                         <div className="flex items-center text-sm text-gray-900">
                           <FaEye className="mr-1 text-gray-500" />
                           <span>{property.views.total} total</span>
-                        </div>
-                        <div className="flex items-center text-xs text-gray-500">
-                          <FaUserCheck className="mr-1 text-blue-500" />
-                          <span>{property.views.loggedIn}</span>
-                          <span className="mx-1">•</span>
-                          <FaUserSecret className="mr-1 text-purple-500" />
-                          <span>{property.views.anonymous}</span>
                         </div>
                       </div>
                     </td>

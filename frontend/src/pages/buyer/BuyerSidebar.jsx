@@ -9,18 +9,17 @@ const BuyerSidebar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // Sidebar links
   const links = [
     { to: '/buyer/dashboard', icon: <FaHome className="mr-3" />, text: 'Dashboard' },
     { to: '/buyer/wishlist', icon: <FaHeart className="mr-3" />, text: 'My Wishlist' },
-    { to: '/buyer/inquiries', icon: <FaEnvelope className="mr-3" />, text: 'My Inquiries' },
+    { to: '/buyer/bookings', icon: <FaEnvelope className="mr-3" />, text: 'My Bookings' },
     { to: '/buyer/profile', icon: <FaUser className="mr-3" />, text: 'Profile' },
   ];
 
   return (
     <>
       {/* Mobile Toggle Button */}
-      <div className="lg:hidden fixed top-20 right-4 z-30">
+      <div className="lg:hidden fixed top-20 right-4 z-40">
         <button
           onClick={toggleMobileMenu}
           className="p-2 rounded-md bg-white shadow-md focus:outline-none"
@@ -33,15 +32,15 @@ const BuyerSidebar = () => {
       {/* Sidebar Overlay for Mobile */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
           onClick={toggleMobileMenu}
         ></div>
       )}
 
       {/* Sidebar */}
       <div 
-        className={`lg:block fixed lg:sticky top-20 z-30 h-[calc(100vh-5rem)] w-64 bg-white shadow-md transition-transform lg:transform-none ${
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed lg:sticky top-20 z-30 h-[calc(100vh-5rem)] w-64 bg-white shadow-md transition-transform duration-300 ease-in-out ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
         <div className="p-5 border-b border-gray-200">

@@ -50,15 +50,11 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
       case 'for sale':
         return 'bg-green-100 text-green-800';
       case 'sold out':
+      case 'not available':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const calculateDimensions = (sqft) => {
-    const side = Math.sqrt(sqft);
-    return `${Math.round(side)} x ${Math.round(side)} ft`;
   };
 
   const handleWishlistToggle = async () => {
@@ -100,6 +96,8 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
     navigate(`/property/${id}`);
   };
 
+  const isAvailable = !['sold out', 'not available'].includes(status.toLowerCase());
+
   return (
     <div className="card group animate-fade-in">
       <div className="relative overflow-hidden">
@@ -119,7 +117,7 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
 
         <button
           onClick={handleWishlistToggle}
-          className="absolute top-4 right-16 p-2 rounded-full bg-white shadow-md hover:bg-gray-100 transition-colors"
+          className="absolute bottom-4 right-6 p-2 rounded-full bg-white shadow-md hover:bg-gray-100 transition-colors"
         >
           {isInWishlist ? (
             <FaHeart className="text-red-500" />
@@ -151,20 +149,7 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
               <span>{bathrooms} {bathrooms === 1 ? 'Bath' : 'Baths'}</span>
             </div>
           )}
-          
-          {area && (
-            <div className="flex items-center">
-              <FaRulerCombined className="mr-1" />
-              <span>{area} sqft</span>
-            </div>
-          )}
         </div>
-        
-        {area && (
-          <p className="text-xs text-gray-500 mb-3">
-            (Approx {calculateDimensions(area)})
-          </p>
-        )}
         
         <div className="flex items-center text-sm text-gray-600 mb-3">
           <FaEye className="mr-1" />
@@ -177,12 +162,21 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
           </p>
           
           <div className="flex space-x-2">
-            <button 
-              onClick={handleBookNow}
-              className="btn-primary flex-1 bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-lg hover:shadow-teal-500/30 transition-all duration-300"
-            >
-              Book Now
-            </button>
+            {isAvailable ? (
+              <button 
+                onClick={handleBookNow}
+                className="btn-primary flex-1 bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-lg hover:shadow-teal-500/30 transition-all duration-300"
+              >
+                Book Now
+              </button>
+            ) : (
+              <button 
+                disabled
+                className="btn-primary flex-1 bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg cursor-not-allowed"
+              >
+                Not Available
+              </button>
+            )}
             <button 
               onClick={handleViewDetails}
               className="btn-outline flex-1"

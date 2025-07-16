@@ -73,7 +73,7 @@ const PROPERTIES = [
     area: 250,
     imageUrl: 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
     sellerId: 2,
-    status: 'available',
+    status: 'not available',
     views: {
       total: 178,
       loggedIn: 98,

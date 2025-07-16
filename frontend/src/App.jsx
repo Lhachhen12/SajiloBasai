@@ -45,9 +45,15 @@ const BuyerRoute = ({ children }) => {
   }
   
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen pt-16">
-      <BuyerSidebar />
-      <main className="flex-1 lg:ml-64">{children}</main>
+    <div className="flex flex-col min-h-screen">
+      <div className="flex flex-1 pt-16">
+        <BuyerSidebar />
+        <main className="flex-1 "> {/* Reduced left padding */}
+          <div className="p-4 sm:p-6 lg:px-8"> {/* Adjusted horizontal padding */}
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };
@@ -66,7 +72,7 @@ const SellerRoute = ({ children }) => {
   return (
     <div className="flex flex-col lg:flex-row min-h-screen pt-16">
       <SellerSidebar />
-      <main className="flex-1 lg:ml-64">{children}</main>
+      <main className="flex-1">{children}</main>
     </div>
   );
 };

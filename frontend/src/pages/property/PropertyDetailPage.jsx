@@ -23,6 +23,7 @@ const PropertyDetailPage = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
 
+  const isAvailable = !['sold out', 'not available'].includes(property?.status.toLowerCase());
   // Mock seller data (in a real app, this would come from the API)
   const seller = {
     id: 'seller123',
@@ -209,7 +210,7 @@ const PropertyDetailPage = () => {
                   <p className="text-2xl font-bold text-gray-700">{property.bathrooms}</p>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg">
+                {/* <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center mb-2">
                     <FaRulerCombined className="text-xl text-primary-500 mr-2" />
                     <h3 className="text-lg font-semibold text-gray-800">Area</h3>
@@ -218,18 +219,27 @@ const PropertyDetailPage = () => {
                   <p className="text-sm text-gray-600">
                     ({Math.round(Math.sqrt(property.area))} x {Math.round(Math.sqrt(property.area))} ft)
                   </p>
-                </div>
+                </div> */}
               </div>
 
               {/* Book Now button */}
-              <div className="flex justify-end mb-6">
+            <div className="flex justify-end mb-6">
+              {isAvailable ? (
                 <button
                   onClick={handleBookNow}
                   className="btn-primary flex items-center justify-center bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-lg hover:shadow-teal-500/30 transition-all duration-300 py-3 px-6 rounded-lg"
                 >
                   Book Now
                 </button>
-              </div>
+              ) : (
+                <button
+                  disabled
+                  className="btn-primary flex items-center justify-center bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg cursor-not-allowed py-3 px-6 rounded-lg"
+                >
+                  Not Available
+                </button>
+              )}
+            </div>
 
               {/* Description */}
               <div className="mb-8">
