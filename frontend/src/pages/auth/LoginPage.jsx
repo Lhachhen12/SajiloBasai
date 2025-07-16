@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Mail, Lock, LogIn, Eye, EyeOff, Shield } from 'lucide-react';
 import GradientButton from '../../components/ui/GradientButton';
 import { toast } from 'react-hot-toast';
+import { API_URL } from '../../config';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -25,39 +26,55 @@ const LoginPage = () => {
     setLoading(true);
     
     try {
-      // For demo purposes, we're using dummy credentials
-      if (email === 'john@example.com') {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const user = { id: 1, name: 'John Doe', email, role: 'buyer' };
-        login(user);
-        toast.success('Login successful!');
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password
+        }),
+        credentials: 'include' // Important for cookies/sessions
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // If login is successful
+      toast.success('Login successful!');
+      
+      // Store user data in context/auth state if needed
+      if (login) {
+        login(data.user); // Assuming the API returns the user object
+      }
+
+      // Store user data in localStorage if needed
+      localStorage.setItem('propertyFinderUser', JSON.stringify(data.user));
+
+      // Redirect based on user role
+      if (data.user?.role === 'buyer') {
         navigate('/buyer/dashboard');
-        
-      } else if (email === 'jane@example.com') {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const user = { id: 2, name: 'Jane Smith', email, role: 'seller' };
-        login(user);
-        toast.success('Login successful!');
+      } else if (data.user?.role === 'seller') {
         navigate('/seller/dashboard');
-        
       } else {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setError('Invalid email or password. Try using john@example.com (buyer) or jane@example.com (seller)');
+        navigate(from);
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError('An error occurred during login. Please try again.');
+      const errorMessage = error.message || 'An error occurred during login. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    // ... (rest of your component remains the same)
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100 p-4 pt-20">
       {/* Main Login Card */}
       <div className="w-full max-w-md">
@@ -217,9 +234,9 @@ const LoginPage = () => {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-blue-800">Demo Accounts</h3>
               <div className="mt-2 text-sm text-blue-700">
-                <p className="mb-1"><span className="font-medium">Buyer:</span> john@example.com</p>
-                <p className="mb-1"><span className="font-medium">Seller:</span> jane@example.com</p>
-                <p><span className="font-medium">Password:</span> any password works</p>
+                <p className="mb-1"><span className="font-medium">Buyer:</span> buyer@example.com</p>
+                <p className="mb-1"><span className="font-medium">Seller:</span> seller@example.com</p>
+                <p><span className="font-medium">Password:</span> password123</p>
               </div>
             </div>
           </div>

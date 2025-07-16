@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Mail, Lock, User, Home, Eye, EyeOff, Shield, UserPlus, LogIn } from 'lucide-react';
 import GradientButton from '../../components/ui/GradientButton';
 import toast from 'react-hot-toast';
+import { API_URL } from '../../config';
 
 const RegisterPage = () => {
   const [name, setName] = useState('');
@@ -41,39 +42,47 @@ const RegisterPage = () => {
     setLoading(true);
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create user object
-      const user = {
-        id: Date.now().toString(),
-        name,
-        email,
-        role,
-        createdAt: new Date().toISOString()
-      };
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role
+        }),
+        credentials: 'include' // Important for cookies/sessions
+      });
 
-      // Register the user
-      const registrationSuccess = register(user);
-      
-      if (registrationSuccess) {
-        toast.success('Registration successful! Redirecting...');
-        
-        // Navigate based on user role after a short delay
-        setTimeout(() => {
-          if (role === 'buyer') {
-            navigate('/buyer/dashboard');
-          } else {
-            navigate('/seller/dashboard');
-          }
-        }, 1500);
-      } else {
-        throw new Error('Registration failed');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
       }
+
+      // If registration is successful
+      toast.success('Registration successful! Redirecting...');
+      
+      // Store user data in context/auth state if needed
+      if (register) {
+        register(data.user); // Assuming the API returns the user object
+      }
+
+      // Navigate based on user role after a short delay
+      setTimeout(() => {
+        if (role === 'buyer') {
+          navigate('/buyer/dashboard');
+        } else {
+          navigate('/seller/dashboard');
+        }
+      }, 1500);
     } catch (error) {
       console.error('Registration error:', error);
-      setError(error.message || 'An error occurred during registration. Please try again.');
-      toast.error('Registration failed. Please try again.');
+      const errorMessage = error.message || 'An error occurred during registration. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -311,7 +320,7 @@ const RegisterPage = () => {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-indigo-800">Quick Testing</h3>
               <div className="mt-2 text-sm text-indigo-700">
-                <p>Use any email and password to test the registration flow.</p>
+                <p>Use any valid email and password (min 6 chars) to test.</p>
                 <p className="mt-1">After registration, you'll be redirected to the appropriate dashboard.</p>
               </div>
             </div>
