@@ -16,6 +16,7 @@ import BlogPage from './pages/cms/BlogPage';
 import BlogPostPage from './pages/cms/BlogPostPage';
 import PrivacyPage from './pages/cms/PrivacyPage';
 import TermsPage from './pages/cms/TermsPage';
+import CustomToaster from './components/toaster/CustomToaster';
 
 // Buyer pages
 import BuyerSidebar from './pages/buyer/BuyerSidebar';
@@ -74,7 +75,7 @@ function App() {
   return (
     <>
       <Navbar />
-      
+      <CustomToaster />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />

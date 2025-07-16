@@ -111,7 +111,7 @@ const ContactPage = () => {
               icon: MapPin,
               title: "Visit Us",
               subtitle: "Come see us in person",
-              content: ["chabahil, Kathmandu, Nepal", "Near St Lawrence College"],
+              content: ["chabahil, Kathmandu, Nepal", "Near KL tower"],
               action: "Get Directions",
               color: "teal",
               delay: 200,
@@ -192,7 +192,7 @@ const ContactPage = () => {
                         value={formData.name}
                         onChange={handleChange}
                         className="w-full px-4 py-3 bg-gray-50/50 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:bg-white transition-all duration-200 outline-none text-gray-900 text-sm"
-                        placeholder="John Doe"
+                        placeholder="Your full name"
                         required
                       />
                     </div>
@@ -207,7 +207,7 @@ const ContactPage = () => {
                         value={formData.email}
                         onChange={handleChange}
                         className="w-full px-4 py-3 bg-gray-50/50 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:bg-white transition-all duration-200 outline-none text-gray-900 text-sm"
-                        placeholder="john@example.com"
+                        placeholder="Your@gmail.com"
                         required
                       />
                     </div>
