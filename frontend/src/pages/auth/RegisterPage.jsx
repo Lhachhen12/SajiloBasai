@@ -72,11 +72,7 @@ const RegisterPage = () => {
 
       // Navigate based on user role after a short delay
       setTimeout(() => {
-        if (role === 'buyer') {
-          navigate('/buyer/dashboard');
-        } else {
-          navigate('/seller/dashboard');
-        }
+        navigate('/'); // Changed from dashboard to home page
       }, 1500);
     } catch (error) {
       console.error('Registration error:', error);

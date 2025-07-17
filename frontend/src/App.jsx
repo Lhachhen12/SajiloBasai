@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
+
 
 // Pages
 import HomePage from './pages/home/HomePage';
@@ -82,6 +84,7 @@ function App() {
     <>
       <Navbar />
       <CustomToaster />
+      <ScrollToTop />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />

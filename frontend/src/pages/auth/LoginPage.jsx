@@ -55,14 +55,8 @@ const LoginPage = () => {
       // Store user data in localStorage if needed
       localStorage.setItem('propertyFinderUser', JSON.stringify(data.user));
 
-      // Redirect based on user role
-      if (data.user?.role === 'buyer') {
-        navigate('/buyer/dashboard');
-      } else if (data.user?.role === 'seller') {
-        navigate('/seller/dashboard');
-      } else {
-        navigate(from);
-      }
+      // Redirect to home page after login
+      navigate('/'); // Changed from role-based dashboard to home page
     } catch (error) {
       console.error('Login error:', error);
       const errorMessage = error.message || 'An error occurred during login. Please try again.';
