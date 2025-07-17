@@ -44,7 +44,7 @@ const SuperSearchBar = ({ onSearchResults }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Search properties (e.g. 'rooms under 15k in Kathmandu')"
+            placeholder="Search room (eg. rooms under 15k)"
             className="flex-grow px-6 py-4 focus:outline-none text-gray-800 placeholder-gray-500"
           />
           {searchQuery && (

@@ -32,19 +32,19 @@ Founded in 2023 in Kathmandu, SajiloBasai was born out of the frustration of fin
         name: 'Aasish Tamang',
         position: 'Founder & CEO',
         bio: 'Real estate expert with 10+ years experience in Kathmandu market',
-        image: '/images/team/rajesh.jpg'
+        image: '/aka1.jpg'
       },
       {
         name: 'Lhachhen Wanjyu Lama',
         position: 'Head of Operations',
         bio: 'Specializes in tenant-landlord relations and property management',
-        image: '/images/team/priya.jpg'
+        image: '/sijan.jpg'
       },
       {
         name: 'Aka Dorje Sherpa',
         position: 'Product Manager',
         bio: 'Oversees platform development and user experience',
-        image: '/images/team/suresh.jpg'
+        image: '/sajilo.png'
       }
     ]
   },
@@ -196,7 +196,7 @@ By following these tips and using SajiloBasai's platform, you can find comfortab
         date: '2024-05-15',
         category: 'Renting Tips',
         tags: ['kathmandu', 'budget', 'students'],
-        featuredImage: '/images/blog/kathmandu-room.jpg'
+        featuredImage: '/room1.jpg'
       },
       {
         id: 2,
@@ -280,7 +280,7 @@ By following this comprehensive checklist, you can ensure a smooth rental experi
         date: '2024-05-10',
         category: 'Renting Guide',
         tags: ['checklist', 'rental agreement', 'inspection'],
-        featuredImage: '/images/blog/rental-checklist.jpg'
+        featuredImage: '/room2.jpg'
       },
       {
         id: 3,
@@ -343,7 +343,7 @@ Remember, while these are general principles, your specific rental agreement may
         date: '2024-04-28',
         category: 'Legal Guide',
         tags: ['tenant rights', 'legal', 'nepal law'],
-        featuredImage: '/images/blog/tenant-rights.jpg'
+        featuredImage: '/room3.jpg'
       },
       {
         id: 4,
@@ -431,7 +431,7 @@ When choosing an area, consider your daily commute, budget, and lifestyle prefer
         date: '2024-04-15',
         category: 'Area Guide',
         tags: ['expats', 'kathmandu', 'neighborhoods'],
-        featuredImage: '/images/blog/kathmandu-expats.jpg'
+        featuredImage: '/room1.jpg'
       }
     ]
   }

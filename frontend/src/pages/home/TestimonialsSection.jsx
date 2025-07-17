@@ -6,7 +6,7 @@ const TestimonialsSection = () => {
     {
       id: 1,
       name: "Sita Rai",
-      role: "Home Buyer",
+      role: "Flat Buyer",
       image: "https://randomuser.me/api/portraits/women/1.jpg",
       text: "SajiloBasai made finding my dream apartment incredibly easy. The detailed filters helped me narrow down exactly what I was looking for, and I was able to contact the owner directly. Couldn't be happier with my new place!",
       rating: 5,
@@ -123,7 +123,7 @@ const TestimonialsSection = () => {
                           alt={testimonial.name} 
                           className="w-14 h-14 rounded-full border-4 border-white shadow-md"
                         />
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"></div>
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full border-2 border-white"></div>
                       </div>
                       <div className="ml-4 text-center">
                         <h4 className="font-bold text-gray-800">{testimonial.name}</h4>
