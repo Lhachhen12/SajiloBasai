@@ -5,13 +5,13 @@ const AboutSection = () => {
     {
       icon: <FaHome className="text-2xl" />,
       title: "Wide Selection",
-      description: "Browse thousands of apartments, houses, and rooms to find your ideal home.",
+      description: "Explore flats, apartments, and rooms to find your ideal place.",
       color: "bg-gradient-to-br from-indigo-500 to-purple-600",
     },
     {
       icon: <FaHandshake className="text-2xl" />,
       title: "Direct Communication",
-      description: "Talk directly with owners or agents—no middlemen involved.",
+      description: "Talk directly with owners or no middlemen involved.",
       color: "bg-gradient-to-br from-emerald-500 to-teal-600",
     },
     {
