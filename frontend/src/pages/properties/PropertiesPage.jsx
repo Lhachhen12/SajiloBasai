@@ -3,14 +3,19 @@ import { useSearchParams } from 'react-router-dom';
 import { getAllProperties } from '../../api/api';
 import PropertyCard from '../../components/PropertyCard';
 import SearchFilters from '../../components/SearchFilters';
+import SuperSearchBar from '../../components/superSearch/SuperSearchBar'; // Add this import
 import { FaSort, FaFilter } from 'react-icons/fa';
+import RecommendationSection from '../../components/recommendation/RecommendationSection';
 
 const PropertiesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState([]);
+  const [filteredProperties, setFilteredProperties] = useState([]); // Add this state
   const [loading, setLoading] = useState(true);
   const [sortOption, setSortOption] = useState('default');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const [searchCriteria, setSearchCriteria] = useState(null);
 
   // Initialize filters from URL params
   const initialFilters = {
@@ -23,23 +28,46 @@ const PropertiesPage = () => {
   const [filters, setFilters] = useState(initialFilters);
 
   // Load properties based on filters
-  useEffect(() => {
-    const loadProperties = async () => {
-      setLoading(true);
-      try {
-        const data = await getAllProperties(filters);
-        setProperties(data);
-      } catch (error) {
-        console.error('Error loading properties:', error);
-      } finally {
+useEffect(() => {
+  const loadProperties = async () => {
+    setLoading(true);
+    
+    // Check for cached results first
+    const cachedSearch = sessionStorage.getItem('superSearchResults');
+    const superSearchQuery = searchParams.get('superSearch');
+    
+    if (cachedSearch && superSearchQuery) {
+      const { query, results } = JSON.parse(cachedSearch);
+      
+      if (query === superSearchQuery) {
+        setFilteredProperties(results);
         setLoading(false);
+        sessionStorage.removeItem('superSearchResults');
+        return;
       }
-    };
+    }
 
-    loadProperties();
-  }, [filters]);
+    try {
+      const data = await getAllProperties(filters);
+      setProperties(data);
+      
+      if (superSearchQuery) {
+        const results = await performSuperSearch(superSearchQuery);
+        setFilteredProperties(results);
+      } else {
+        setFilteredProperties(data);
+      }
+    } catch (error) {
+      console.error('Error loading properties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Handle search submission
+  loadProperties();
+}, [filters, searchParams]);
+
+  // Handle search submission from traditional filters
   const handleSearch = (searchFilters) => {
     // Update filters state
     setFilters(searchFilters);
@@ -53,11 +81,24 @@ const PropertiesPage = () => {
     });
     
     setSearchParams(params);
+    setFilteredProperties(properties); // Reset filtered properties when using traditional filters
   };
+
+  // Handle SuperSearch results
+// Update the handleSuperSearchResults function in PropertiesPage.js
+const handleSuperSearchResults = (results) => {
+  if (results === null) {
+    // When search is cleared, show all properties
+    setFilteredProperties(properties);
+  } else {
+    // When we get results (empty array means no matches)
+    setFilteredProperties(results || []);
+  }
+};
 
   // Sort properties
   const sortProperties = (option) => {
-    let sortedProperties = [...properties];
+    let sortedProperties = [...filteredProperties]; // Sort the filtered properties
     
     switch (option) {
       case 'price-low-high':
@@ -77,7 +118,7 @@ const PropertiesPage = () => {
         break;
     }
     
-    setProperties(sortedProperties);
+    setFilteredProperties(sortedProperties);
     setSortOption(option);
   };
 
@@ -89,12 +130,17 @@ const PropertiesPage = () => {
   return (
     <div className="pt-20 pb-12 bg-gray-50 min-h-screen">
       <div className="container-custom">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Properties</h1>
-          <p className="text-gray-600">
+        {/* Page Header with Gradient Background */}
+        <div className="mb-8 bg-gradient-to-r from-blue-500 to-teal-500 rounded-lg p-8 text-white text-center">
+          <h1 className="text-3xl font-bold mb-2">Properties</h1>
+          <p className="mb-6 text-blue-100">
             Find your perfect property from our comprehensive listings
           </p>
+          
+          {/* Super Search Bar inside header */}
+          <div className="max-w-4xl mx-auto">
+            <SuperSearchBar onSearchResults={handleSuperSearchResults} />
+          </div>
         </div>
         
         {/* Mobile Filters Toggle */}
@@ -132,7 +178,7 @@ const PropertiesPage = () => {
             {/* Sort Controls */}
             <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex justify-between items-center">
               <div className="text-gray-600">
-                {loading ? 'Loading properties...' : `${properties.length} properties found`}
+                {loading ? 'Loading properties...' : `${filteredProperties.length} properties found`}
               </div>
               <div className="flex items-center space-x-2">
                 <label htmlFor="sort" className="text-gray-600 hidden sm:inline">Sort by:</label>
@@ -177,9 +223,9 @@ const PropertiesPage = () => {
                   </div>
                 ))}
               </div>
-            ) : properties.length > 0 ? (
+            ) : filteredProperties.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {properties.map((property) => (
+                {filteredProperties.map((property) => (
                   <PropertyCard key={property.id} property={property} />
                 ))}
               </div>
@@ -198,6 +244,7 @@ const PropertiesPage = () => {
                       maxPrice: '',
                     });
                     setSearchParams({});
+                    setFilteredProperties(properties); // Reset to show all properties
                   }}
                   className="btn-primary"
                 >
@@ -207,6 +254,9 @@ const PropertiesPage = () => {
             )}
           </div>
         </div>
+
+        {/* Recommendation Section */}
+         <RecommendationSection searchCriteria={searchCriteria} />
       </div>
     </div>
   );

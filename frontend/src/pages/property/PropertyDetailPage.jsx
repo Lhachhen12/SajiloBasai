@@ -10,6 +10,7 @@ import ChatModal from '../../components/ChatModal';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import RecommendationSection from '../../components/recommendation/RecommendationSection';
 
 const PropertyDetailPage = () => {
   const { id } = useParams();
@@ -360,6 +361,8 @@ const PropertyDetailPage = () => {
           </div>
         </div>
       </div>
+       {/* Recommendation Section */}
+    <RecommendationSection propertyId={id} />
 
       {/* Login Required Modal */}
       {showLoginModal && (
@@ -398,6 +401,7 @@ const PropertyDetailPage = () => {
           onClose={() => setShowChatModal(false)} 
         />
       )}
+     
     </div>
   );
 };

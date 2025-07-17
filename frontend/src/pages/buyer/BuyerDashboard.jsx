@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FaHeart, FaEnvelope, FaHome, FaUser } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import StatCard from '../../components/StatCard';
-
+import RecommendationSection from '../../components/recommendation/RecommendationSection';
 const BuyerDashboard = () => {
   const { currentUser } = useAuth();
   const [stats, setStats] = useState({
@@ -180,6 +180,8 @@ const BuyerDashboard = () => {
           </div>
         </div>
       </div>
+      {/* Recommendation Section */}
+      <RecommendationSection />
     </div>
   );
 };

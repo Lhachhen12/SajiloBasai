@@ -1,11 +1,12 @@
 // Mock API data and functions
-
-const USERS = [
+export const USERS = [
   { id: 1, name: 'John Doe', email: 'john@example.com', role: 'buyer' },
   { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'seller' },
+  { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'seller' },
 ];
 
-const PROPERTIES = [
+export const PROPERTIES = [
+  // Rooms
   {
     id: 1,
     title: 'Modern Single Room with Kitchen',
@@ -18,15 +19,58 @@ const PROPERTIES = [
     imageUrl: 'https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg',
     sellerId: 2,
     status: 'available',
-    views: {
-      total: 156,
-      loggedIn: 89,
-      anonymous: 67
-    },
+    views: { total: 156, loggedIn: 89, anonymous: 67 },
     featured: true
   },
   {
     id: 2,
+    title: 'Cozy Double Room',
+    description: 'Spacious double room with shared kitchen and bathroom facilities.',
+    price: 12000,
+    type: 'room',
+    roomType: 'double',
+    location: 'Patan',
+    area: 250,
+    imageUrl: 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
+    sellerId: 2,
+    status: 'available',
+    views: { total: 98, loggedIn: 45, anonymous: 53 },
+    featured: false
+  },
+  {
+    id: 3,
+    title: 'Luxury Studio Apartment',
+    description: 'Fully furnished studio apartment with modern amenities.',
+    price: 18000,
+    type: 'room',
+    roomType: 'studio',
+    location: 'Boudha',
+    area: 300,
+    imageUrl: 'https://images.pexels.com/photos/439227/pexels-photo-439227.jpeg',
+    sellerId: 3,
+    status: 'available',
+    views: { total: 210, loggedIn: 120, anonymous: 90 },
+    featured: true
+  },
+  {
+    id: 4,
+    title: 'Budget Single Room',
+    description: 'Simple and affordable single room with shared facilities.',
+    price: 6000,
+    type: 'room',
+    roomType: 'single',
+    location: 'Koteshwor',
+    area: 150,
+    imageUrl: 'https://images.pexels.com/photos/164558/pexels-photo-164558.jpeg',
+    sellerId: 3,
+    status: 'available',
+    views: { total: 87, loggedIn: 32, anonymous: 55 },
+    featured: false
+  },
+
+  // Flats
+  {
+    id: 5,
     title: 'Spacious 2BHK Flat',
     description: 'Modern 2BHK flat with all amenities in a prime location.',
     price: 25000,
@@ -37,55 +81,90 @@ const PROPERTIES = [
     imageUrl: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg',
     sellerId: 2,
     status: 'available',
-    views: {
-      total: 234,
-      loggedIn: 145,
-      anonymous: 89
-    },
+    views: { total: 234, loggedIn: 145, anonymous: 89 },
     featured: true
   },
   {
-    id: 3,
-    title: 'Luxury Apartment with City View',
+    id: 6,
+    title: 'Luxury 3BHK Apartment',
     description: 'Premium apartment with modern amenities and stunning city views.',
     price: 35000,
-    type: 'apartment',
+    type: 'flat',
+    flatType: '3bhk',
     location: 'Kathmandu',
     area: 1200,
     imageUrl: 'https://images.pexels.com/photos/2462015/pexels-photo-2462015.jpeg',
     sellerId: 2,
     status: 'available',
-    views: {
-      total: 312,
-      loggedIn: 198,
-      anonymous: 114
-    },
+    views: { total: 312, loggedIn: 198, anonymous: 114 },
     featured: true
   },
   {
-    id: 4,
-    title: 'Double Room with Balcony',
-    description: 'Comfortable double room with private balcony and shared kitchen.',
-    price: 12000,
-    type: 'room',
-    roomType: 'double',
+    id: 7,
+    title: 'Compact 1BHK Flat',
+    description: 'Affordable 1BHK flat perfect for singles or couples.',
+    price: 18000,
+    type: 'flat',
+    flatType: '1bhk',
     location: 'Bhaktapur',
-    area: 250,
-    imageUrl: 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
-    sellerId: 2,
-    status: 'not available',
-    views: {
-      total: 178,
-      loggedIn: 98,
-      anonymous: 80
-    },
+    area: 500,
+    imageUrl: 'https://images.pexels.com/photos/209296/pexels-photo-209296.jpeg',
+    sellerId: 3,
+    status: 'available',
+    views: { total: 145, loggedIn: 78, anonymous: 67 },
     featured: false
+  },
+  {
+    id: 8,
+    title: 'Modern 2BHK Duplex',
+    description: 'Stylish duplex apartment with two floors and balcony.',
+    price: 30000,
+    type: 'flat',
+    flatType: '2bhk-duplex',
+    location: 'Kathmandu',
+    area: 950,
+    imageUrl: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg',
+    sellerId: 3,
+    status: 'available',
+    views: { total: 189, loggedIn: 112, anonymous: 77 },
+    featured: true
+  },
+  {
+    id: 9,
+    title: 'Affordable 1BHK for Students',
+    description: 'Budget-friendly 1BHK near university area.',
+    price: 15000,
+    type: 'flat',
+    flatType: '1bhk',
+    location: 'Kirtipur',
+    area: 450,
+    imageUrl: 'https://images.pexels.com/photos/259588/pexels-photo-259588.jpeg',
+    sellerId: 2,
+    status: 'available',
+    views: { total: 132, loggedIn: 65, anonymous: 67 },
+    featured: false
+  },
+  {
+    id: 10,
+    title: 'Family 3BHK with Garden',
+    description: 'Spacious family flat with small garden area.',
+    price: 40000,
+    type: 'flat',
+    flatType: '3bhk',
+    location: 'Dhapasi',
+    area: 1400,
+    imageUrl: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
+    sellerId: 3,
+    status: 'available',
+    views: { total: 167, loggedIn: 98, anonymous: 69 },
+    featured: true
   }
 ];
 
 const WISHLIST = [
   { userId: 1, propertyId: 1 },
-  { userId: 1, propertyId: 3 }
+  { userId: 1, propertyId: 3 },
+  { userId: 1, propertyId: 6 }
 ];
 
 const BOOKINGS = [
@@ -101,11 +180,24 @@ const BOOKINGS = [
     paymentStatus: 'pending',
     bookingStatus: 'pending',
     createdAt: new Date().toISOString()
+  },
+  {
+    id: 2,
+    userId: 1,
+    propertyId: 5,
+    numberOfPeople: 3,
+    hasPets: true,
+    useType: 'family',
+    message: 'Need long term rental',
+    paymentMethod: 'cash',
+    paymentStatus: 'completed',
+    bookingStatus: 'confirmed',
+    createdAt: new Date(Date.now() - 86400000).toISOString()
   }
 ];
 
 // Helper function to simulate API delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // API functions
 export const loginUser = async (email, password) => {
