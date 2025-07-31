@@ -1,4 +1,37 @@
-// Mock API data and functions
+// API Configuration and Utilities
+import { API_URL } from '../config.js';
+
+// API Helper Functions
+const getAuthToken = () => {
+  return localStorage.getItem('token');
+};
+
+const createHeaders = (includeAuth = true) => {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  if (includeAuth) {
+    const token = getAuthToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  return headers;
+};
+
+const handleApiResponse = async (response) => {
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || `HTTP error! status: ${response.status}`);
+  }
+
+  return data;
+};
+
+// Mock data for fallback (will be replaced by API calls)
 export const USERS = [
   { id: 1, name: 'John Doe', email: 'john@example.com', role: 'buyer' },
   { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'seller' },
@@ -10,32 +43,36 @@ export const PROPERTIES = [
   {
     id: 1,
     title: 'Modern Single Room with Kitchen',
-    description: 'A beautifully designed single room with attached kitchen and sleeping area.',
+    description:
+      'A beautifully designed single room with attached kitchen and sleeping area.',
     price: 8000,
     type: 'room',
     roomType: 'single-kitchen',
     location: 'Kathmandu',
     area: 200,
-    imageUrl: 'https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg',
     sellerId: 2,
     status: 'available',
     views: { total: 156, loggedIn: 89, anonymous: 67 },
-    featured: true
+    featured: true,
   },
   {
     id: 2,
     title: 'Cozy Double Room',
-    description: 'Spacious double room with shared kitchen and bathroom facilities.',
+    description:
+      'Spacious double room with shared kitchen and bathroom facilities.',
     price: 12000,
     type: 'room',
     roomType: 'double',
     location: 'Patan',
     area: 250,
-    imageUrl: 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
     sellerId: 2,
     status: 'available',
     views: { total: 98, loggedIn: 45, anonymous: 53 },
-    featured: false
+    featured: false,
   },
   {
     id: 3,
@@ -46,11 +83,12 @@ export const PROPERTIES = [
     roomType: 'studio',
     location: 'Boudha',
     area: 300,
-    imageUrl: 'https://images.pexels.com/photos/439227/pexels-photo-439227.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/439227/pexels-photo-439227.jpeg',
     sellerId: 3,
     status: 'available',
     views: { total: 210, loggedIn: 120, anonymous: 90 },
-    featured: true
+    featured: true,
   },
   {
     id: 4,
@@ -61,11 +99,12 @@ export const PROPERTIES = [
     roomType: 'single',
     location: 'Koteshwor',
     area: 150,
-    imageUrl: 'https://images.pexels.com/photos/164558/pexels-photo-164558.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/164558/pexels-photo-164558.jpeg',
     sellerId: 3,
     status: 'available',
     views: { total: 87, loggedIn: 32, anonymous: 55 },
-    featured: false
+    featured: false,
   },
 
   // Flats
@@ -78,26 +117,29 @@ export const PROPERTIES = [
     flatType: '2bhk',
     location: 'Lalitpur',
     area: 800,
-    imageUrl: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg',
     sellerId: 2,
     status: 'available',
     views: { total: 234, loggedIn: 145, anonymous: 89 },
-    featured: true
+    featured: true,
   },
   {
     id: 6,
     title: 'Luxury 3BHK Apartment',
-    description: 'Premium apartment with modern amenities and stunning city views.',
+    description:
+      'Premium apartment with modern amenities and stunning city views.',
     price: 35000,
     type: 'flat',
     flatType: '3bhk',
     location: 'Kathmandu',
     area: 1200,
-    imageUrl: 'https://images.pexels.com/photos/2462015/pexels-photo-2462015.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/2462015/pexels-photo-2462015.jpeg',
     sellerId: 2,
     status: 'available',
     views: { total: 312, loggedIn: 198, anonymous: 114 },
-    featured: true
+    featured: true,
   },
   {
     id: 7,
@@ -108,11 +150,12 @@ export const PROPERTIES = [
     flatType: '1bhk',
     location: 'Bhaktapur',
     area: 500,
-    imageUrl: 'https://images.pexels.com/photos/209296/pexels-photo-209296.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/209296/pexels-photo-209296.jpeg',
     sellerId: 3,
     status: 'available',
     views: { total: 145, loggedIn: 78, anonymous: 67 },
-    featured: false
+    featured: false,
   },
   {
     id: 8,
@@ -123,11 +166,12 @@ export const PROPERTIES = [
     flatType: '2bhk-duplex',
     location: 'Kathmandu',
     area: 950,
-    imageUrl: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg',
     sellerId: 3,
     status: 'available',
     views: { total: 189, loggedIn: 112, anonymous: 77 },
-    featured: true
+    featured: true,
   },
   {
     id: 9,
@@ -138,11 +182,12 @@ export const PROPERTIES = [
     flatType: '1bhk',
     location: 'Kirtipur',
     area: 450,
-    imageUrl: 'https://images.pexels.com/photos/259588/pexels-photo-259588.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/259588/pexels-photo-259588.jpeg',
     sellerId: 2,
     status: 'available',
     views: { total: 132, loggedIn: 65, anonymous: 67 },
-    featured: false
+    featured: false,
   },
   {
     id: 10,
@@ -153,18 +198,19 @@ export const PROPERTIES = [
     flatType: '3bhk',
     location: 'Dhapasi',
     area: 1400,
-    imageUrl: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
+    imageUrl:
+      'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
     sellerId: 3,
     status: 'available',
     views: { total: 167, loggedIn: 98, anonymous: 69 },
-    featured: true
-  }
+    featured: true,
+  },
 ];
 
 const WISHLIST = [
   { userId: 1, propertyId: 1 },
   { userId: 1, propertyId: 3 },
-  { userId: 1, propertyId: 6 }
+  { userId: 1, propertyId: 6 },
 ];
 
 const BOOKINGS = [
@@ -179,7 +225,7 @@ const BOOKINGS = [
     paymentMethod: 'online',
     paymentStatus: 'pending',
     bookingStatus: 'pending',
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   },
   {
     id: 2,
@@ -192,276 +238,537 @@ const BOOKINGS = [
     paymentMethod: 'cash',
     paymentStatus: 'completed',
     bookingStatus: 'confirmed',
-    createdAt: new Date(Date.now() - 86400000).toISOString()
-  }
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+  },
 ];
 
-// Helper function to simulate API delay
-export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// Helper function to simulate API delay (keeping for backward compatibility)
+export const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// API functions
+// Authentication API functions
 export const loginUser = async (email, password) => {
-  await delay(500);
-  const user = USERS.find(user => user.email === email);
-  
-  if (user) {
-    return { success: true, user };
+  try {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: createHeaders(false),
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await handleApiResponse(response);
+
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.data));
+    }
+
+    return { success: true, user: data.data, token: data.token };
+  } catch (error) {
+    return { success: false, message: error.message };
   }
-  
-  return { success: false, message: 'Invalid credentials' };
 };
 
 export const registerUser = async (userData) => {
-  await delay(800);
-  const newUser = {
-    id: USERS.length + 1,
-    ...userData
-  };
-  
-  USERS.push(newUser);
-  return { success: true, user: newUser };
+  try {
+    const response = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: createHeaders(false),
+      body: JSON.stringify(userData),
+    });
+
+    const data = await handleApiResponse(response);
+
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.data));
+    }
+
+    return { success: true, user: data.data, token: data.token };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
 };
 
+export const logoutUser = async () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  return { success: true };
+};
+
+export const forgotPassword = async (email) => {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: createHeaders(false),
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, message: data.message };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const resetPassword = async (token, password) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/auth/reset-password/${token}`,
+      {
+        method: 'POST',
+        headers: createHeaders(false),
+        body: JSON.stringify({ password }),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return { success: true, message: data.message };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+// Property API functions
 export const getFeaturedProperties = async () => {
-  await delay(600);
-  return PROPERTIES.filter(property => property.featured);
+  try {
+    const response = await fetch(`${API_URL}/api/properties/featured`, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return data.properties || [];
+  } catch (error) {
+    console.error('Error fetching featured properties:', error);
+    return PROPERTIES.filter((property) => property.featured); // Fallback to mock data
+  }
 };
 
 export const getAllProperties = async (filters = {}) => {
-  await delay(700);
-  
-  let filteredProperties = [...PROPERTIES];
-  
-  if (filters.location) {
-    filteredProperties = filteredProperties.filter(
-      property => property.location.toLowerCase().includes(filters.location.toLowerCase())
-    );
+  try {
+    const queryParams = new URLSearchParams();
+
+    if (filters.location) queryParams.append('location', filters.location);
+    if (filters.type) queryParams.append('type', filters.type);
+    if (filters.minPrice) queryParams.append('minPrice', filters.minPrice);
+    if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice);
+    if (filters.search) queryParams.append('search', filters.search);
+    if (filters.page) queryParams.append('page', filters.page);
+    if (filters.limit) queryParams.append('limit', filters.limit);
+
+    const url = `${API_URL}/api/properties${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`;
+
+    const response = await fetch(url, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return {
+      properties: data.properties || [],
+      totalPages: data.totalPages || 1,
+      currentPage: data.currentPage || 1,
+      total: data.total || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching properties:', error);
+    // Fallback to mock data with filtering
+    let filteredProperties = [...PROPERTIES];
+
+    if (filters.location) {
+      filteredProperties = filteredProperties.filter((property) =>
+        property.location.toLowerCase().includes(filters.location.toLowerCase())
+      );
+    }
+
+    if (filters.type) {
+      filteredProperties = filteredProperties.filter(
+        (property) => property.type === filters.type
+      );
+    }
+
+    if (filters.minPrice) {
+      filteredProperties = filteredProperties.filter(
+        (property) => property.price >= filters.minPrice
+      );
+    }
+
+    if (filters.maxPrice) {
+      filteredProperties = filteredProperties.filter(
+        (property) => property.price <= filters.maxPrice
+      );
+    }
+
+    return {
+      properties: filteredProperties,
+      totalPages: 1,
+      currentPage: 1,
+      total: filteredProperties.length,
+    };
   }
-  
-  if (filters.type) {
-    filteredProperties = filteredProperties.filter(
-      property => property.type === filters.type
-    );
-  }
-  
-  if (filters.minPrice) {
-    filteredProperties = filteredProperties.filter(
-      property => property.price >= filters.minPrice
-    );
-  }
-  
-  if (filters.maxPrice) {
-    filteredProperties = filteredProperties.filter(
-      property => property.price <= filters.maxPrice
-    );
-  }
-  
-  return filteredProperties;
 };
 
 export const getPropertyById = async (id) => {
-  await delay(400);
-  const property = PROPERTIES.find(property => property.id === parseInt(id));
-  
-  if (property) {
-    property.views.total += 1;
-    property.views.anonymous += 1;
-    
-    return { success: true, property };
+  try {
+    const response = await fetch(`${API_URL}/api/properties/${id}`, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, property: data.property };
+  } catch (error) {
+    console.error('Error fetching property:', error);
+    // Fallback to mock data
+    const property = PROPERTIES.find(
+      (property) => property.id === parseInt(id)
+    );
+
+    if (property) {
+      property.views.total += 1;
+      property.views.anonymous += 1;
+      return { success: true, property };
+    }
+
+    return { success: false, message: 'Property not found' };
   }
-  
-  return { success: false, message: 'Property not found' };
 };
 
+export const createProperty = async (propertyData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/properties`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify(propertyData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, property: data.property };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const updateProperty = async (id, propertyData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/properties/${id}`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(propertyData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, property: data.property };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const deleteProperty = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/api/properties/${id}`, {
+      method: 'DELETE',
+      headers: createHeaders(true),
+    });
+
+    await handleApiResponse(response);
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+// Booking API functions
 export const createBooking = async (bookingData) => {
-  await delay(800);
-  
-  const newBooking = {
-    id: BOOKINGS.length + 1,
-    ...bookingData,
-    paymentStatus: 'pending',
-    bookingStatus: 'pending',
-    createdAt: new Date().toISOString()
-  };
-  
-  BOOKINGS.push(newBooking);
-  return { success: true, booking: newBooking };
-};
+  try {
+    const response = await fetch(`${API_URL}/api/bookings`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify(bookingData),
+    });
 
-export const processPayment = async (bookingId, method) => {
-  await delay(1000);
-  
-  const booking = BOOKINGS.find(b => b.id === bookingId);
-  if (booking) {
-    booking.paymentMethod = method;
-    booking.paymentStatus = 'completed';
-    booking.bookingStatus = 'confirmed';
-    
-    return { 
-      success: true, 
-      message: 'Payment processed successfully',
-      booking
-    };
+    const data = await handleApiResponse(response);
+    return { success: true, booking: data.booking };
+  } catch (error) {
+    return { success: false, message: error.message };
   }
-  
-  return { success: false, message: 'Booking not found' };
 };
 
+export const getUserBookings = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/bookings/user`, {
+      headers: createHeaders(true),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, bookings: data.bookings };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const getBookingById = async (bookingId) => {
+  try {
+    const response = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
+      headers: createHeaders(true),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, booking: data.booking };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const updateBookingStatus = async (bookingId, status) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/bookings/${bookingId}/status`,
+      {
+        method: 'PUT',
+        headers: createHeaders(true),
+        body: JSON.stringify({ status }),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return { success: true, booking: data.booking };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const processPayment = async (bookingId, paymentData) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/bookings/${bookingId}/payment`,
+      {
+        method: 'POST',
+        headers: createHeaders(true),
+        body: JSON.stringify(paymentData),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return {
+      success: true,
+      message: 'Payment processed successfully',
+      booking: data.booking,
+    };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+// Wishlist API functions
 export const getWishlistByUserId = async (userId) => {
-  await delay(600);
-  const wishlistIds = WISHLIST
-    .filter(item => item.userId === userId)
-    .map(item => item.propertyId);
-  
-  const wishlistProperties = PROPERTIES.filter(
-    property => wishlistIds.includes(property.id)
-  );
-  
-  return wishlistProperties;
+  try {
+    const response = await fetch(`${API_URL}/api/wishlist`, {
+      headers: createHeaders(true),
+    });
+
+    const data = await handleApiResponse(response);
+    return data.wishlist || [];
+  } catch (error) {
+    console.error('Error fetching wishlist:', error);
+    // Fallback to mock data
+    const wishlistIds = WISHLIST.filter((item) => item.userId === userId).map(
+      (item) => item.propertyId
+    );
+
+    const wishlistProperties = PROPERTIES.filter((property) =>
+      wishlistIds.includes(property.id)
+    );
+
+    return wishlistProperties;
+  }
 };
 
 export const addToWishlist = async (userId, propertyId) => {
-  await delay(300);
-  
-  const existingItem = WISHLIST.find(
-    item => item.userId === userId && item.propertyId === propertyId
-  );
-  
-  if (existingItem) {
-    return { success: false, message: 'Property already in wishlist' };
+  try {
+    const response = await fetch(`${API_URL}/api/wishlist`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify({ propertyId }),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, message: data.message };
+  } catch (error) {
+    return { success: false, message: error.message };
   }
-  
-  WISHLIST.push({ userId, propertyId });
-  return { success: true, message: 'Added to wishlist' };
 };
 
 export const removeFromWishlist = async (userId, propertyId) => {
-  await delay(300);
-  
-  const initialLength = WISHLIST.length;
-  
-  const updatedWishlist = WISHLIST.filter(
-    item => !(item.userId === userId && item.propertyId === propertyId)
-  );
-  
-  WISHLIST.length = 0;
-  WISHLIST.push(...updatedWishlist);
-  
-  if (WISHLIST.length < initialLength) {
-    return { success: true, message: 'Removed from wishlist' };
+  try {
+    const response = await fetch(`${API_URL}/api/wishlist/${propertyId}`, {
+      method: 'DELETE',
+      headers: createHeaders(true),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, message: data.message };
+  } catch (error) {
+    return { success: false, message: error.message };
   }
-  
-  return { success: false, message: 'Property not in wishlist' };
+};
+
+// User API functions
+export const getUserProfile = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/users/profile`, {
+      headers: createHeaders(true),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, user: data.data.user };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const updateUserProfile = async (profileData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/users/profile`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(profileData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, user: data.user };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+// Feedback API functions
+export const submitFeedback = async (feedbackData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/feedback`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify(feedbackData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, feedback: data.feedback };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const getFeedback = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/feedback`, {
+      headers: createHeaders(true),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, feedback: data.feedback };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
 };
 
 export const getBookingsByUserId = async (userId) => {
   await delay(500);
-  return BOOKINGS.filter(booking => booking.userId === userId).map(booking => ({
-    ...booking,
-    property: PROPERTIES.find(p => p.id === booking.propertyId)
-  }));
+  return BOOKINGS.filter((booking) => booking.userId === userId).map(
+    (booking) => ({
+      ...booking,
+      property: PROPERTIES.find((p) => p.id === booking.propertyId),
+    })
+  );
 };
 
 export const getBookingsBySellerId = async (sellerId) => {
   await delay(500);
-  const sellerProperties = PROPERTIES.filter(p => p.sellerId === sellerId);
-  return BOOKINGS
-    .filter(booking => sellerProperties.some(p => p.id === booking.propertyId))
-    .map(booking => ({
-      ...booking,
-      property: PROPERTIES.find(p => p.id === booking.propertyId),
-      user: USERS.find(u => u.id === booking.userId)
-    }));
+  const sellerProperties = PROPERTIES.filter((p) => p.sellerId === sellerId);
+  return BOOKINGS.filter((booking) =>
+    sellerProperties.some((p) => p.id === booking.propertyId)
+  ).map((booking) => ({
+    ...booking,
+    property: PROPERTIES.find((p) => p.id === booking.propertyId),
+    user: USERS.find((u) => u.id === booking.userId),
+  }));
 };
 
 export const getBuyerDashboardStats = async (userId) => {
   await delay(500);
-  
-  const userBookings = BOOKINGS.filter(booking => booking.userId === userId);
-  const userWishlist = WISHLIST.filter(item => item.userId === userId);
-  
+
+  const userBookings = BOOKINGS.filter((booking) => booking.userId === userId);
+  const userWishlist = WISHLIST.filter((item) => item.userId === userId);
+
   return {
     totalBookings: userBookings.length,
-    activeBookings: userBookings.filter(b => b.bookingStatus === 'confirmed').length,
-    pendingBookings: userBookings.filter(b => b.bookingStatus === 'pending').length,
+    activeBookings: userBookings.filter((b) => b.bookingStatus === 'confirmed')
+      .length,
+    pendingBookings: userBookings.filter((b) => b.bookingStatus === 'pending')
+      .length,
     wishlistCount: userWishlist.length,
-    recentBookings: userBookings.slice(-3).map(booking => ({
+    recentBookings: userBookings.slice(-3).map((booking) => ({
       ...booking,
-      property: PROPERTIES.find(p => p.id === booking.propertyId)
-    }))
+      property: PROPERTIES.find((p) => p.id === booking.propertyId),
+    })),
   };
 };
 
 export const getSellerDashboardStats = async (sellerId) => {
   await delay(500);
-  
-  const sellerProperties = PROPERTIES.filter(p => p.sellerId === sellerId);
-  const propertyIds = sellerProperties.map(p => p.id);
-  const propertyBookings = BOOKINGS.filter(b => propertyIds.includes(b.propertyId));
-  
-  const totalViews = sellerProperties.reduce((sum, p) => sum + p.views.total, 0);
+
+  const sellerProperties = PROPERTIES.filter((p) => p.sellerId === sellerId);
+  const propertyIds = sellerProperties.map((p) => p.id);
+  const propertyBookings = BOOKINGS.filter((b) =>
+    propertyIds.includes(b.propertyId)
+  );
+
+  const totalViews = sellerProperties.reduce(
+    (sum, p) => sum + p.views.total,
+    0
+  );
   const totalEarnings = propertyBookings
-    .filter(b => b.paymentStatus === 'completed')
+    .filter((b) => b.paymentStatus === 'completed')
     .reduce((sum, b) => {
-      const property = PROPERTIES.find(p => p.id === b.propertyId);
+      const property = PROPERTIES.find((p) => p.id === b.propertyId);
       return sum + property.price;
     }, 0);
-    
+
   return {
     totalProperties: sellerProperties.length,
-    activeListings: sellerProperties.filter(p => p.status === 'available').length,
+    activeListings: sellerProperties.filter((p) => p.status === 'available')
+      .length,
     totalBookings: propertyBookings.length,
-    pendingBookings: propertyBookings.filter(b => b.bookingStatus === 'pending').length,
+    pendingBookings: propertyBookings.filter(
+      (b) => b.bookingStatus === 'pending'
+    ).length,
     totalViews,
     totalEarnings,
-    recentBookings: propertyBookings.slice(-3).map(booking => ({
+    recentBookings: propertyBookings.slice(-3).map((booking) => ({
       ...booking,
-      property: PROPERTIES.find(p => p.id === booking.propertyId),
-      user: USERS.find(u => u.id === booking.userId)
-    }))
+      property: PROPERTIES.find((p) => p.id === booking.propertyId),
+      user: USERS.find((u) => u.id === booking.userId),
+    })),
   };
 };
 
 export const addProperty = async (propertyData) => {
   await delay(800);
-  
+
   const newProperty = {
     id: PROPERTIES.length + 1,
     ...propertyData,
     views: {
       total: 0,
       loggedIn: 0,
-      anonymous: 0
+      anonymous: 0,
     },
     status: 'available',
-    featured: false
+    featured: false,
   };
-  
+
   PROPERTIES.push(newProperty);
   return { success: true, property: newProperty };
 };
 
-export const deleteProperty = async (propertyId) => {
-  await delay(500);
-  
-  const propertyIndex = PROPERTIES.findIndex(p => p.id === propertyId);
-  
-  if (propertyIndex === -1) {
-    return { success: false, message: 'Property not found' };
-  }
-  
-  // Remove the property from the PROPERTIES array
-  PROPERTIES.splice(propertyIndex, 1);
-  
-  // Remove any associated wishlist items
-  const updatedWishlist = WISHLIST.filter(item => item.propertyId !== propertyId);
-  WISHLIST.length = 0;
-  WISHLIST.push(...updatedWishlist);
-  
-  return { success: true, message: 'Property deleted successfully' };
-};
-
 export const getPropertiesBySellerId = async (sellerId) => {
   await delay(500);
-  return PROPERTIES.filter(property => property.sellerId === sellerId);
+  return PROPERTIES.filter((property) => property.sellerId === sellerId);
 };

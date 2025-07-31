@@ -3,15 +3,24 @@ const generateToken = (user, statusCode, res) => {
 
   const options = {
     expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
+      Date.now() + (process.env.JWT_COOKIE_EXPIRE || 30) * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
   };
+
+  // Set cookie
+  res.cookie('token', token, options);
+
+  // Remove password from output
+  const userOutput = { ...user.toObject() };
+  delete userOutput.password;
 
   res.status(statusCode).json({
     success: true,
     token,
-    user,
+    data: userOutput,
   });
 };
 

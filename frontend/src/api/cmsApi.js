@@ -1,3 +1,36 @@
+// CMS API Integration
+import { API_URL } from '../config.js';
+
+// API Helper Functions
+const getAuthToken = () => {
+  return localStorage.getItem('token');
+};
+
+const createHeaders = (includeAuth = true) => {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  if (includeAuth) {
+    const token = getAuthToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  return headers;
+};
+
+const handleApiResponse = async (response) => {
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || `HTTP error! status: ${response.status}`);
+  }
+
+  return data;
+};
+
 // Mock CMS data and functions for SajiloBasai
 
 const CMS_PAGES = {
@@ -32,21 +65,21 @@ Founded in 2023 in Kathmandu, SajiloBasai was born out of the frustration of fin
         name: 'Aasish Tamang',
         position: 'Founder & CEO',
         bio: 'Real estate expert with 10+ years experience in Kathmandu market',
-        image: '/aka1.jpg'
+        image: '/aka1.jpg',
       },
       {
         name: 'Lhachhen Wanjyu Lama',
         position: 'Head of Operations',
         bio: 'Specializes in tenant-landlord relations and property management',
-        image: '/sijan.jpg'
+        image: '/sijan.jpg',
       },
       {
         name: 'Aka Dorje Sherpa',
         position: 'Product Manager',
         bio: 'Oversees platform development and user experience',
-        image: '/sajilo.png'
-      }
-    ]
+        image: '/sajilo.png',
+      },
+    ],
   },
   privacy: {
     title: 'Privacy Policy',
@@ -88,7 +121,7 @@ As a user in Nepal, you have the right to:
 - Request correction of inaccurate information
 - Delete your account and associated data
 - Opt-out of marketing communications
-    `
+    `,
   },
   terms: {
     title: 'Terms & Conditions',
@@ -131,7 +164,7 @@ Users may not:
 - Circumvent our payment system
 - Use automated tools to scrape data
 - Violate any Nepali laws
-    `
+    `,
   },
   blog: {
     posts: [
@@ -139,7 +172,8 @@ Users may not:
         id: 1,
         title: 'How to Find Affordable Rooms in Kathmandu',
         slug: 'affordable-rooms-kathmandu',
-        excerpt: 'Practical tips for students and young professionals looking for budget-friendly accommodation in Kathmandu.',
+        excerpt:
+          'Practical tips for students and young professionals looking for budget-friendly accommodation in Kathmandu.',
         content: `
 # How to Find Affordable Rooms in Kathmandu
 
@@ -196,13 +230,14 @@ By following these tips and using SajiloBasai's platform, you can find comfortab
         date: '2024-05-15',
         category: 'Renting Tips',
         tags: ['kathmandu', 'budget', 'students'],
-        featuredImage: '/room1.jpg'
+        featuredImage: '/room1.jpg',
       },
       {
         id: 2,
         title: 'Essential Checklist Before Renting a Flat in Nepal',
         slug: 'rental-checklist-nepal',
-        excerpt: 'A comprehensive guide to inspecting properties and understanding rental agreements in Nepal.',
+        excerpt:
+          'A comprehensive guide to inspecting properties and understanding rental agreements in Nepal.',
         content: `
 # Essential Checklist Before Renting a Flat in Nepal
 
@@ -280,13 +315,14 @@ By following this comprehensive checklist, you can ensure a smooth rental experi
         date: '2024-05-10',
         category: 'Renting Guide',
         tags: ['checklist', 'rental agreement', 'inspection'],
-        featuredImage: '/room2.jpg'
+        featuredImage: '/room2.jpg',
       },
       {
         id: 3,
         title: 'Understanding Tenant Rights in Nepal',
         slug: 'tenant-rights-nepal',
-        excerpt: 'Learn about your legal protections as a renter under Nepali law.',
+        excerpt:
+          'Learn about your legal protections as a renter under Nepali law.',
         content: `
 # Understanding Tenant Rights in Nepal
 
@@ -343,13 +379,14 @@ Remember, while these are general principles, your specific rental agreement may
         date: '2024-04-28',
         category: 'Legal Guide',
         tags: ['tenant rights', 'legal', 'nepal law'],
-        featuredImage: '/room3.jpg'
+        featuredImage: '/room3.jpg',
       },
       {
         id: 4,
         title: 'Best Areas for Expats to Live in Kathmandu',
         slug: 'expats-kathmandu-areas',
-        excerpt: 'A guide to the most expat-friendly neighborhoods in Kathmandu Valley.',
+        excerpt:
+          'A guide to the most expat-friendly neighborhoods in Kathmandu Valley.',
         content: `
 # Best Areas for Expats to Live in Kathmandu
 
@@ -431,58 +468,177 @@ When choosing an area, consider your daily commute, budget, and lifestyle prefer
         date: '2024-04-15',
         category: 'Area Guide',
         tags: ['expats', 'kathmandu', 'neighborhoods'],
-        featuredImage: '/room1.jpg'
-      }
-    ]
-  }
+        featuredImage: '/room1.jpg',
+      },
+    ],
+  },
 };
 
 // Helper function to simulate API delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Get page content
 export const getPageContent = async (pageSlug) => {
-  await delay(400);
-  return CMS_PAGES[pageSlug] || null;
+  try {
+    const response = await fetch(`${API_URL}/api/cms/pages/${pageSlug}`, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return data.page;
+  } catch (error) {
+    console.error('Error fetching page content:', error);
+    // Fallback to mock data
+    return CMS_PAGES[pageSlug] || null;
+  }
 };
 
 // Get blog posts
 export const getBlogPosts = async (limit = 10, offset = 0) => {
-  await delay(600);
-  
-  const posts = CMS_PAGES.blog.posts
-    .slice(offset, offset + limit)
-    .map(post => ({
-      ...post,
-      content: undefined // Don't send full content in list view
-    }));
-  
-  return {
-    posts,
-    total: CMS_PAGES.blog.posts.length
-  };
+  try {
+    const queryParams = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString(),
+    });
+
+    const response = await fetch(`${API_URL}/api/cms/blog?${queryParams}`, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return {
+      posts: data.posts || [],
+      total: data.total || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching blog posts:', error);
+    // Fallback to mock data
+    const posts = CMS_PAGES.blog.posts
+      .slice(offset, offset + limit)
+      .map((post) => ({
+        ...post,
+        content: undefined, // Don't send full content in list view
+      }));
+
+    return {
+      posts,
+      total: CMS_PAGES.blog.posts.length,
+    };
+  }
 };
 
 // Get single blog post
 export const getBlogPost = async (slug) => {
-  await delay(400);
-  
-  const post = CMS_PAGES.blog.posts.find(post => post.slug === slug);
-  return post || null;
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog/${slug}`, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return data.post;
+  } catch (error) {
+    console.error('Error fetching blog post:', error);
+    // Fallback to mock data
+    const post = CMS_PAGES.blog.posts.find((post) => post.slug === slug);
+    return post || null;
+  }
 };
 
 // Get blog categories
 export const getBlogCategories = async () => {
-  await delay(300);
-  
-  const categories = [...new Set(CMS_PAGES.blog.posts.map(post => post.category))];
-  return categories;
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog/categories`, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return data.categories || [];
+  } catch (error) {
+    console.error('Error fetching blog categories:', error);
+    // Fallback to mock data
+    const categories = [
+      ...new Set(CMS_PAGES.blog.posts.map((post) => post.category)),
+    ];
+    return categories;
+  }
 };
 
 // Get blog tags
 export const getBlogTags = async () => {
-  await delay(300);
-  
-  const tags = [...new Set(CMS_PAGES.blog.posts.flatMap(post => post.tags))];
-  return tags;
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog/tags`, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return data.tags || [];
+  } catch (error) {
+    console.error('Error fetching blog tags:', error);
+    // Fallback to mock data
+    const tags = [
+      ...new Set(CMS_PAGES.blog.posts.flatMap((post) => post.tags)),
+    ];
+    return tags;
+  }
+};
+
+// Admin CMS functions
+export const createPage = async (pageData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/pages`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify(pageData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, page: data.page };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const updatePage = async (pageId, pageData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/pages/${pageId}`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(pageData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, page: data.page };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const createBlogPost = async (postData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify(postData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, post: data.post };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const updateBlogPost = async (postId, postData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog/${postId}`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(postData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, post: data.post };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
 };

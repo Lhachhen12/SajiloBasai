@@ -1,61 +1,125 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getFeedback, updateFeedback } from '../utils/adminApi';
 import { FiThumbsUp, FiThumbsDown, FiStar, FiCheck } from 'react-icons/fi';
 
 const Feedback = () => {
-  const [feedback, setFeedback] = useState([
-    {
-      id: 1,
-      user: 'John Doe',
-      rating: 5,
-      comment: 'Great service! Found my dream apartment quickly.',
-      date: '2024-02-20',
-      status: 'Approved',
-      featured: true,
-      showOnFrontend: true
-    },
-    {
-      id: 2,
-      user: 'Jane Smith',
-      rating: 4,
-      comment: 'Very helpful platform, but could use some improvements in the search filters.',
-      date: '2024-02-19',
-      status: 'Pending',
-      featured: false,
-      showOnFrontend: false
-    },
-    {
-      id: 3,
-      user: 'Mike Johnson',
-      rating: 5,
-      comment: 'The best property rental platform I\'ve used!',
-      date: '2024-02-18',
-      status: 'Approved',
-      featured: true,
-      showOnFrontend: true
-    }
-  ]);
-
+  const [feedback, setFeedback] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
-  const handleStatusChange = (id, newStatus) => {
-    setFeedback(feedback.map(item => 
-      item.id === id ? {...item, status: newStatus} : item
-    ));
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const feedbackData = await getFeedback();
+        setFeedback(feedbackData);
+      } catch (error) {
+        console.error('Error fetching feedback data:', error);
+        // Fallback to dummy data
+        setFeedback([
+          {
+            id: 1,
+            user: 'John Doe',
+            rating: 5,
+            comment: 'Great service! Found my dream apartment quickly.',
+            date: '2024-02-20',
+            status: 'Approved',
+            featured: true,
+            showOnFrontend: true,
+          },
+          {
+            id: 2,
+            user: 'Jane Smith',
+            rating: 4,
+            comment:
+              'Very helpful platform, but could use some improvements in the search filters.',
+            date: '2024-02-19',
+            status: 'Pending',
+            featured: false,
+            showOnFrontend: false,
+          },
+          {
+            id: 3,
+            user: 'Mike Johnson',
+            rating: 5,
+            comment: "The best property rental platform I've used!",
+            date: '2024-02-18',
+            status: 'Approved',
+            featured: true,
+            showOnFrontend: true,
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await updateFeedback(id, { status: newStatus });
+      setFeedback(
+        feedback.map((item) =>
+          item.id === id ? { ...item, status: newStatus } : item
+        )
+      );
+    } catch (error) {
+      console.error('Error updating feedback status:', error);
+      // Optimistic update for fallback
+      setFeedback(
+        feedback.map((item) =>
+          item.id === id ? { ...item, status: newStatus } : item
+        )
+      );
+    }
   };
 
-  const handleFeatureToggle = (id) => {
-    setFeedback(feedback.map(item => 
-      item.id === id ? {...item, featured: !item.featured} : item
-    ));
+  const handleFeatureToggle = async (id) => {
+    try {
+      const feedbackItem = feedback.find((item) => item.id === id);
+      await updateFeedback(id, { featured: !feedbackItem.featured });
+      setFeedback(
+        feedback.map((item) =>
+          item.id === id ? { ...item, featured: !item.featured } : item
+        )
+      );
+    } catch (error) {
+      console.error('Error updating feedback feature status:', error);
+      // Optimistic update for fallback
+      setFeedback(
+        feedback.map((item) =>
+          item.id === id ? { ...item, featured: !item.featured } : item
+        )
+      );
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>
+            <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-4 border-transparent border-t-blue-500 animate-spin"></div>
+          </div>
+          <p className="text-sm text-gray-600">Loading feedback...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleFrontendDisplay = (id) => {
-    setFeedback(feedback.map(item => 
-      item.id === id ? {...item, showOnFrontend: !item.showOnFrontend} : item
-    ));
+    setFeedback(
+      feedback.map((item) =>
+        item.id === id
+          ? { ...item, showOnFrontend: !item.showOnFrontend }
+          : item
+      )
+    );
   };
 
-  const filteredFeedback = feedback.filter(item => {
+  const filteredFeedback = feedback.filter((item) => {
     if (filter === 'all') return true;
     if (filter === 'featured') return item.featured;
     if (filter === 'frontend') return item.showOnFrontend;
@@ -65,36 +129,42 @@ const Feedback = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Feedback Management</h1>
-        <p className="text-sm text-gray-500">Review and manage customer feedback</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Feedback Management
+        </h1>
+        <p className="text-sm text-gray-500">
+          Review and manage customer feedback
+        </p>
       </div>
 
       <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white rounded-lg shadow-card p-4 text-center">
-          <div className="text-2xl font-bold text-gray-900">{feedback.length}</div>
+          <div className="text-2xl font-bold text-gray-900">
+            {feedback.length}
+          </div>
           <div className="text-sm text-gray-500">Total Feedback</div>
         </div>
         <div className="bg-white rounded-lg shadow-card p-4 text-center">
           <div className="text-2xl font-bold text-green-600">
-            {feedback.filter(f => f.status === 'Approved').length}
+            {feedback.filter((f) => f.status === 'Approved').length}
           </div>
           <div className="text-sm text-gray-500">Approved</div>
         </div>
         <div className="bg-white rounded-lg shadow-card p-4 text-center">
           <div className="text-2xl font-bold text-yellow-600">
-            {feedback.filter(f => f.status === 'Pending').length}
+            {feedback.filter((f) => f.status === 'Pending').length}
           </div>
           <div className="text-sm text-gray-500">Pending</div>
         </div>
         <div className="bg-white rounded-lg shadow-card p-4 text-center">
           <div className="text-2xl font-bold text-blue-600">
-            {feedback.filter(f => f.featured).length}
+            {feedback.filter((f) => f.featured).length}
           </div>
           <div className="text-sm text-gray-500">Featured</div>
         </div>
         <div className="bg-white rounded-lg shadow-card p-4 text-center">
           <div className="text-2xl font-bold text-purple-600">
-            {feedback.filter(f => f.showOnFrontend).length}
+            {feedback.filter((f) => f.showOnFrontend).length}
           </div>
           <div className="text-sm text-gray-500">On Frontend</div>
         </div>
@@ -117,7 +187,10 @@ const Feedback = () => {
 
         <div className="divide-y divide-gray-200">
           {filteredFeedback.map((item) => (
-            <div key={item.id} className="p-6">
+            <div
+              key={item.id}
+              className="p-6"
+            >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center mb-2">
@@ -127,7 +200,10 @@ const Feedback = () => {
                     <span className="mx-2 text-gray-300">•</span>
                     <div className="flex">
                       {[...Array(item.rating)].map((_, i) => (
-                        <FiStar key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                        <FiStar
+                          key={i}
+                          className="h-4 w-4 text-yellow-400 fill-current"
+                        />
                       ))}
                     </div>
                   </div>
@@ -156,37 +232,55 @@ const Feedback = () => {
                       <button
                         onClick={() => handleFeatureToggle(item.id)}
                         className={`p-2 rounded-full ${
-                          item.featured 
-                            ? 'text-yellow-600 hover:bg-yellow-50' 
+                          item.featured
+                            ? 'text-yellow-600 hover:bg-yellow-50'
                             : 'text-gray-400 hover:bg-gray-50'
                         }`}
-                        title={item.featured ? "Remove from featured" : "Add to featured"}
+                        title={
+                          item.featured
+                            ? 'Remove from featured'
+                            : 'Add to featured'
+                        }
                       >
-                        <FiStar className={`h-5 w-5 ${item.featured ? 'fill-current' : ''}`} />
+                        <FiStar
+                          className={`h-5 w-5 ${
+                            item.featured ? 'fill-current' : ''
+                          }`}
+                        />
                       </button>
                       <button
                         onClick={() => handleFrontendDisplay(item.id)}
                         className={`p-2 rounded-full ${
-                          item.showOnFrontend 
-                            ? 'text-purple-600 hover:bg-purple-50' 
+                          item.showOnFrontend
+                            ? 'text-purple-600 hover:bg-purple-50'
                             : 'text-gray-400 hover:bg-gray-50'
                         }`}
-                        title={item.showOnFrontend ? "Remove from frontend" : "Show on frontend"}
+                        title={
+                          item.showOnFrontend
+                            ? 'Remove from frontend'
+                            : 'Show on frontend'
+                        }
                       >
-                        <FiCheck className={`h-5 w-5 ${item.showOnFrontend ? 'fill-current' : ''}`} />
+                        <FiCheck
+                          className={`h-5 w-5 ${
+                            item.showOnFrontend ? 'fill-current' : ''
+                          }`}
+                        />
                       </button>
                     </>
                   )}
                 </div>
               </div>
               <div className="mt-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  item.status === 'Approved' 
-                    ? 'bg-green-100 text-green-800'
-                    : item.status === 'Pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    item.status === 'Approved'
+                      ? 'bg-green-100 text-green-800'
+                      : item.status === 'Pending'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
                   {item.status}
                 </span>
                 {item.featured && (

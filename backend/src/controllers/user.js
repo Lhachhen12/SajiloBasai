@@ -1,4 +1,6 @@
-import User from "../models/user.js";
+import User from '../models/user.js';
+import { validationResult } from 'express-validator';
+
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -6,7 +8,7 @@ export const getProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message: 'User not found',
       });
     }
 
@@ -15,10 +17,10 @@ export const getProfile = async (req, res) => {
       data: { user },
     });
   } catch (error) {
-    console.error("Get profile error:", error);
+    console.error('Get profile error:', error);
     res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: 'Internal server error',
     });
   }
 };
@@ -29,7 +31,7 @@ export const updateProfile = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: "Validation failed",
+        message: 'Validation failed',
         errors: errors.array(),
       });
     }
@@ -50,24 +52,23 @@ export const updateProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message: 'User not found',
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Profile updated successfully",
+      message: 'Profile updated successfully',
       data: { user },
     });
   } catch (error) {
-    console.error("Update profile error:", error);
+    console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: 'Internal server error',
     });
   }
 };
-
 
 export const getAllUsers = async (req, res) => {
   try {
@@ -97,16 +98,15 @@ export const getAllUsers = async (req, res) => {
           totalPages: Math.ceil(total / limit),
           totalUsers: total,
           hasNext: page < Math.ceil(total / limit),
-          hasPrev: page > 1
-        }
-      }
+          hasPrev: page > 1,
+        },
+      },
     });
-
   } catch (error) {
     console.error('Get all users error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
     });
   }
 };
@@ -119,7 +119,7 @@ export const toggleUserStatus = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
 
@@ -128,15 +128,16 @@ export const toggleUserStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
-      data: { user }
+      message: `User ${
+        user.isActive ? 'activated' : 'deactivated'
+      } successfully`,
+      data: { user },
     });
-
   } catch (error) {
     console.error('Toggle user status error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
     });
   }
 };
