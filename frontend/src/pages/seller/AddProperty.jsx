@@ -1,41 +1,80 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addProperty } from '../../api/api';
-import { FaPlus, FaTimes, FaCheck } from 'react-icons/fa';
+import {
+  createProperty,
+  uploadSingleImage,
+  uploadMultipleImages,
+} from '../../api/api';
+import { useDropzone } from 'react-dropzone';
+import {
+  FiSave,
+  FiHome,
+  FiImage,
+  FiMapPin,
+  FiDollarSign,
+  FiMaximize,
+  FiX,
+  FiUpload,
+} from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 const AddProperty = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [customFeatures, setCustomFeatures] = useState([]);
-  const [newFeature, setNewFeature] = useState('');
+  const [uploadingImages, setUploadingImages] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [propertyData, setPropertyData] = useState({
     title: '',
     description: '',
-    type: '',
     price: '',
+    type: 'room', // Default to room
+    roomType: '', // Required when type is 'room'
+    flatType: '', // Required when type is 'flat' or 'apartment'
     location: '',
-    area: '',
-    bedrooms: '',
-    bathrooms: '',
+    area: '', // Changed from 'size' to match backend model
+    bedrooms: 0,
+    bathrooms: 0,
+    images: [], // URLs from uploaded images
     features: {
       electricity: false,
       parking: false,
       wifi: false,
       security: false,
       furnished: false,
-      waterSupply: false
+      waterSupply: false,
     },
-    images: ['', '', '', ''] // Placeholder for image URLs
+    amenities: [], // Array of strings
+    rules: [],
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+    },
+    availableFrom: new Date().toISOString().split('T')[0], // Date input format
   });
 
   const propertyTypes = [
-    { value: '', label: 'Select Category' },
+    { value: 'room', label: 'Room' },
     { value: 'apartment', label: 'Apartment' },
     { value: 'house', label: 'House' },
-    { value: 'room', label: 'Room' },
-    { value: 'flat', label: 'Flat' }
+    { value: 'flat', label: 'Flat' },
+  ];
+
+  const roomTypes = [
+    { value: 'single', label: 'Single Room' },
+    { value: 'double', label: 'Double Room' },
+    { value: 'single-kitchen', label: 'Single Room with Kitchen' },
+    { value: 'double-kitchen', label: 'Double Room with Kitchen' },
+    { value: 'studio', label: 'Studio' },
+  ];
+
+  const flatTypes = [
+    { value: '1BHK', label: '1 BHK' },
+    { value: '2BHK', label: '2 BHK' },
+    { value: '3BHK', label: '3 BHK' },
+    { value: '4BHK', label: '4 BHK' },
+    { value: 'penthouse', label: 'Penthouse' },
   ];
 
   const locations = [
@@ -48,331 +87,710 @@ const AddProperty = () => {
     'Butwal',
     'Dharan',
     'Bharatpur',
-    'Hetauda'
+    'Hetauda',
+    'Janakpur',
+    'Nepalgunj',
   ];
 
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (type === 'checkbox') {
-      setFormData(prev => ({
+  const amenitiesList = [
+    'WiFi',
+    'AC',
+    'Gym',
+    'Swimming Pool',
+    'Elevator',
+    'Garden',
+    'CCTV',
+    'Laundry',
+    'Internet',
+  ];
+
+  const featuresList = [
+    { key: 'electricity', label: 'Electricity' },
+    { key: 'parking', label: 'Parking' },
+    { key: 'wifi', label: 'WiFi' },
+    { key: 'security', label: 'Security' },
+    { key: 'furnished', label: 'Furnished' },
+    { key: 'waterSupply', label: 'Water Supply' },
+  ];
+
+  const rulesList = [
+    'No Smoking',
+    'No Pets',
+    'No Parties',
+    'Visitors Allowed',
+    'Family Preferred',
+    'Students Welcome',
+  ];
+
+  const handlePropertyChange = (e) => {
+    const { name, value, type } = e.target;
+
+    if (name.includes('.')) {
+      // Handle nested objects like address.street
+      const [parent, child] = name.split('.');
+      setPropertyData((prev) => ({
         ...prev,
-        features: {
-          ...prev.features,
-          [name]: checked
-        }
+        [parent]: {
+          ...prev[parent],
+          [child]: type === 'number' ? Number(value) : value,
+        },
       }));
     } else {
-      setFormData(prev => ({
+      setPropertyData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: type === 'number' ? Number(value) : value,
       }));
     }
   };
 
-  const handleImageChange = (index, value) => {
-    const newImages = [...formData.images];
-    newImages[index] = value;
-    setFormData(prev => ({
+  const handleFeatureToggle = (featureKey) => {
+    setPropertyData((prev) => ({
       ...prev,
-      images: newImages
+      features: {
+        ...prev.features,
+        [featureKey]: !prev.features[featureKey],
+      },
     }));
   };
 
-  const addCustomFeature = () => {
-    if (newFeature.trim()) {
-      setCustomFeatures(prev => [...prev, newFeature.trim()]);
-      setNewFeature('');
+  const handleAmenityToggle = (amenity) => {
+    setPropertyData((prev) => ({
+      ...prev,
+      amenities: prev.amenities.includes(amenity)
+        ? prev.amenities.filter((a) => a !== amenity)
+        : [...prev.amenities, amenity],
+    }));
+  };
+
+  const handleRuleToggle = (rule) => {
+    setPropertyData((prev) => ({
+      ...prev,
+      rules: prev.rules.includes(rule)
+        ? prev.rules.filter((r) => r !== rule)
+        : [...prev.rules, rule],
+    }));
+  };
+
+  const handleRemoveImage = (index) => {
+    setPropertyData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Dropzone configuration for image upload
+  const onDrop = async (acceptedFiles) => {
+    setUploadingImages(true);
+
+    try {
+      if (acceptedFiles.length === 1) {
+        // Single image upload
+        const result = await uploadSingleImage(acceptedFiles[0]);
+        console.log('Single upload result:', result);
+        if (result.success && result.imageUrl) {
+          setPropertyData((prev) => ({
+            ...prev,
+            images: [...prev.images, result.imageUrl],
+          }));
+          toast.success('Image uploaded successfully!');
+        } else {
+          toast.error(result.message || 'Failed to upload image');
+        }
+      } else if (acceptedFiles.length > 1) {
+        // Multiple images upload
+        const result = await uploadMultipleImages(acceptedFiles);
+        console.log('Multiple upload result:', result);
+        if (result.success && result.imageUrls && result.imageUrls.length > 0) {
+          setPropertyData((prev) => ({
+            ...prev,
+            images: [...prev.images, ...result.imageUrls.filter((url) => url)],
+          }));
+          toast.success(
+            `Successfully uploaded ${result.imageUrls.length} images!`
+          );
+        } else {
+          toast.error(result.message || 'Failed to upload images');
+        }
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Error uploading images');
+    } finally {
+      setUploadingImages(false);
     }
   };
 
-  const removeCustomFeature = (index) => {
-    setCustomFeatures(prev => prev.filter((_, i) => i !== index));
-  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
+    },
+    maxFiles: 10,
+    maxSize: 5 * 1024 * 1024, // 5MB
+    disabled: uploadingImages,
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Basic validation
+    if (
+      !propertyData.title ||
+      !propertyData.price ||
+      !propertyData.location ||
+      !propertyData.area
+    ) {
+      toast.error(
+        'Please fill in all required fields (title, price, location, area)'
+      );
+      return;
+    }
+
+    // Validate conditional fields
+    if (propertyData.type === 'room' && !propertyData.roomType) {
+      toast.error('Room type is required for room properties');
+      return;
+    }
+
+    if (
+      (propertyData.type === 'flat' || propertyData.type === 'apartment') &&
+      !propertyData.flatType
+    ) {
+      toast.error('Flat type is required for flat/apartment properties');
+      return;
+    }
+
+    if (propertyData.images.length === 0) {
+      toast.error('At least one image is required');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const propertyData = {
-        ...formData,
-        customFeatures,
-        sellerId: 2, // In a real app, this would come from auth context
-        status: 'available',
-        views: {
-          total: 0,
-          loggedIn: 0,
-          anonymous: 0
-        }
+      // Format data to match the Property model
+      const formattedPropertyData = {
+        title: propertyData.title,
+        description: propertyData.description,
+        type: propertyData.type.toLowerCase(), // Convert to lowercase
+        roomType:
+          propertyData.type === 'room' ? propertyData.roomType : undefined,
+        flatType:
+          propertyData.type === 'flat' || propertyData.type === 'apartment'
+            ? propertyData.flatType
+            : undefined,
+        price: Number(propertyData.price),
+        location: propertyData.location,
+        area: Number(propertyData.area),
+        bedrooms: Number(propertyData.bedrooms),
+        bathrooms: Number(propertyData.bathrooms),
+        features: propertyData.features,
+        images: propertyData.images.filter((img) => img && img.trim() !== ''),
+        amenities: propertyData.amenities,
+        rules: propertyData.rules,
+        address: propertyData.address,
+        availableFrom: new Date(propertyData.availableFrom),
+        status: 'pending', // Set to pending for admin approval
       };
 
-      const response = await addProperty(propertyData);
-      
+      const response = await createProperty(formattedPropertyData);
+
       if (response.success) {
-        setSuccess(true);
+        toast.success('Property added successfully!', {
+          duration: 4000,
+          position: 'top-right',
+        });
+
         setTimeout(() => {
           navigate('/seller/listings');
         }, 2000);
+      } else {
+        toast.error('Failed to add property');
       }
     } catch (error) {
       console.error('Error adding property:', error);
+      toast.error('Error adding property');
     } finally {
       setLoading(false);
     }
   };
 
-  // Calculate dimensions based on area
-  const dimensions = formData.area ? Math.sqrt(Number(formData.area)) : 0;
-
   return (
-    <div className="py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Add New Property</h1>
-          <p className="text-gray-600">Fill in the details to list your property</p>
+    <div className="py-6 px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col space-y-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Add New Property</h1>
+          <p className="text-lg text-gray-600 mt-2">
+            Create a new property listing with comprehensive details
+          </p>
         </div>
 
-        {success ? (
-          <div className="bg-green-50 p-6 rounded-lg text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaCheck className="text-2xl text-green-600" />
+        {/* Decorative Element */}
+        <div className="h-1 w-24 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full"></div>
+      </div>
+
+      {/* Main Form */}
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          className="p-8 space-y-8"
+        >
+          {/* Property Information Section */}
+          <div>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FiHome className="h-5 w-5 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Property Information
+              </h3>
             </div>
-            <h2 className="text-xl font-semibold text-green-800 mb-2">Property Added Successfully!</h2>
-            <p className="text-green-600">Redirecting to your listings...</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6">
-            {/* Basic Information */}
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property Title *
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={propertyData.title}
+                  onChange={handlePropertyChange}
+                  placeholder="e.g., Modern Apartment in City Center"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property Type *
+                </label>
+                <select
+                  name="type"
+                  value={propertyData.type}
+                  onChange={handlePropertyChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  {propertyTypes.map((type) => (
+                    <option
+                      key={type.value}
+                      value={type.value}
+                    >
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Conditional Type-specific Fields */}
+              {propertyData.type === 'room' && (
                 <div>
-                  <label htmlFor="type" className="form-label">Property Category *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Room Type *
+                  </label>
                   <select
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleInputChange}
-                    className="input-field"
+                    name="roomType"
+                    value={propertyData.roomType}
+                    onChange={handlePropertyChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    {propertyTypes.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
+                    <option value="">Select Room Type</option>
+                    {roomTypes.map((type) => (
+                      <option
+                        key={type.value}
+                        value={type.value}
+                      >
+                        {type.label}
+                      </option>
                     ))}
                   </select>
                 </div>
+              )}
 
+              {(propertyData.type === 'flat' ||
+                propertyData.type === 'apartment') && (
                 <div>
-                  <label htmlFor="location" className="form-label">Location *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Flat Type *
+                  </label>
                   <select
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    className="input-field"
+                    name="flatType"
+                    value={propertyData.flatType}
+                    onChange={handlePropertyChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">Select Location</option>
-                    {locations.map(location => (
-                      <option key={location} value={location}>{location}</option>
+                    <option value="">Select Flat Type</option>
+                    {flatTypes.map((type) => (
+                      <option
+                        key={type.value}
+                        value={type.value}
+                      >
+                        {type.label}
+                      </option>
                     ))}
                   </select>
                 </div>
+              )}
 
-                <div className="md:col-span-2">
-                  <label htmlFor="title" className="form-label">Property Title *</label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Modern Apartment in City Center"
-                    className="input-field"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location *
+                </label>
+                <select
+                  name="location"
+                  value={propertyData.location}
+                  onChange={handlePropertyChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select Location</option>
+                  {locations.map((location) => (
+                    <option
+                      key={location}
+                      value={location}
+                    >
+                      {location}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="md:col-span-2">
-                  <label htmlFor="description" className="form-label">Description *</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows="4"
-                    className="input-field"
-                    placeholder="Describe your property..."
-                    required
-                  ></textarea>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FiDollarSign className="inline h-4 w-4 mr-1" />
+                  Price (NPR per month) *
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  value={propertyData.price}
+                  onChange={handlePropertyChange}
+                  placeholder="Enter monthly rent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FiMaximize className="inline h-4 w-4 mr-1" />
+                  Area (sq ft) *
+                </label>
+                <input
+                  type="number"
+                  name="area"
+                  value={propertyData.area}
+                  onChange={handlePropertyChange}
+                  placeholder="Area in square feet"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bedrooms
+                </label>
+                <input
+                  type="number"
+                  name="bedrooms"
+                  value={propertyData.bedrooms}
+                  onChange={handlePropertyChange}
+                  min="0"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bathrooms
+                </label>
+                <input
+                  type="number"
+                  name="bathrooms"
+                  value={propertyData.bathrooms}
+                  onChange={handlePropertyChange}
+                  min="0"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Available From
+                </label>
+                <input
+                  type="date"
+                  name="availableFrom"
+                  value={propertyData.availableFrom}
+                  onChange={handlePropertyChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={propertyData.description}
+                  onChange={handlePropertyChange}
+                  rows="4"
+                  placeholder="Describe your property..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
+          </div>
 
-            {/* Property Details */}
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Property Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label htmlFor="price" className="form-label">Price (NPR) *</label>
-                  <input
-                    type="number"
-                    id="price"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    placeholder="Enter price"
-                    className="input-field"
-                    required
-                  />
-                </div>
+          {/* Address Section */}
+          <div>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <FiMapPin className="h-5 w-5 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Address Details
+              </h3>
+            </div>
 
-                <div>
-                  <label htmlFor="area" className="form-label">Area (sqft) *</label>
-                  <input
-                    type="number"
-                    id="area"
-                    name="area"
-                    value={formData.area}
-                    onChange={handleInputChange}
-                    placeholder="Total area in square feet"
-                    className="input-field"
-                    required
-                  />
-                  {dimensions > 0 && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Approx. {Math.round(dimensions)} x {Math.round(dimensions)} ft
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Street Address
+                </label>
+                <input
+                  type="text"
+                  name="address.street"
+                  value={propertyData.address.street}
+                  onChange={handlePropertyChange}
+                  placeholder="Street address"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  City
+                </label>
+                <input
+                  type="text"
+                  name="address.city"
+                  value={propertyData.address.city}
+                  onChange={handlePropertyChange}
+                  placeholder="City"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  State
+                </label>
+                <input
+                  type="text"
+                  name="address.state"
+                  value={propertyData.address.state}
+                  onChange={handlePropertyChange}
+                  placeholder="State/Province"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Zip Code
+                </label>
+                <input
+                  type="text"
+                  name="address.zipCode"
+                  value={propertyData.address.zipCode}
+                  onChange={handlePropertyChange}
+                  placeholder="Zip/Postal code"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Images Section */}
+          <div>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <FiImage className="h-5 w-5 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Property Images *
+              </h3>
+            </div>
+
+            <div className="space-y-4">
+              {/* Image Upload Dropzone */}
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                  isDragActive
+                    ? 'border-blue-500 bg-blue-50'
+                    : uploadingImages
+                    ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
+                    : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+                }`}
+              >
+                <input {...getInputProps()} />
+                <div className="flex flex-col items-center space-y-2">
+                  <FiUpload className="h-8 w-8 text-gray-500" />
+                  {uploadingImages ? (
+                    <p className="text-sm text-gray-500">Uploading images...</p>
+                  ) : isDragActive ? (
+                    <p className="text-sm text-blue-600">
+                      Drop the images here
                     </p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600">
+                        Drag & drop images here, or click to select
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Supports: JPG, PNG, WebP (Max 5MB each, up to 10 images)
+                      </p>
+                    </>
                   )}
                 </div>
-
-                <div>
-                  <label htmlFor="bedrooms" className="form-label">Bedrooms</label>
-                  <input
-                    type="number"
-                    id="bedrooms"
-                    name="bedrooms"
-                    value={formData.bedrooms}
-                    onChange={handleInputChange}
-                    placeholder="Number of bedrooms"
-                    className="input-field"
-                    min="0"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="bathrooms" className="form-label">Bathrooms</label>
-                  <input
-                    type="number"
-                    id="bathrooms"
-                    name="bathrooms"
-                    value={formData.bathrooms}
-                    onChange={handleInputChange}
-                    placeholder="Number of bathrooms"
-                    className="input-field"
-                    min="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Images */}
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Property Images</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {formData.images.map((url, index) => (
-                  <div key={index}>
-                    <label htmlFor={`image-${index}`} className="form-label">
-                      Image URL {index + 1}
-                    </label>
-                    <input
-                      type="url"
-                      id={`image-${index}`}
-                      value={url}
-                      onChange={(e) => handleImageChange(index, e.target.value)}
-                      placeholder="Enter image URL"
-                      className="input-field"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Features</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {Object.entries(formData.features).map(([key, value]) => (
-                  <label key={key} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name={key}
-                      checked={value}
-                      onChange={handleInputChange}
-                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                    />
-                    <span className="text-gray-700 capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                  </label>
-                ))}
               </div>
 
-              {/* Custom Features */}
-              <div>
-                <h3 className="text-md font-medium text-gray-800 mb-2">Custom Features</h3>
-                <div className="flex items-center space-x-2 mb-4">
-                  <input
-                    type="text"
-                    value={newFeature}
-                    onChange={(e) => setNewFeature(e.target.value)}
-                    placeholder="Add custom feature"
-                    className="input-field flex-1"
-                  />
-                  <button
-                    type="button"
-                    onClick={addCustomFeature}
-                    className="btn-primary p-2"
-                  >
-                    <FaPlus />
-                  </button>
-                </div>
-
-                {customFeatures.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {customFeatures.map((feature, index) => (
-                      <div
-                        key={index}
-                        className="bg-gray-100 px-3 py-1 rounded-full flex items-center space-x-2"
+              {/* Uploaded Images Preview */}
+              {propertyData.images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {propertyData.images.map((image, index) => (
+                    <div
+                      key={index}
+                      className="relative group"
+                    >
+                      <img
+                        src={image}
+                        alt={`Property ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <span className="text-gray-700">{feature}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeCustomFeature(index)}
-                          className="text-gray-500 hover:text-red-500"
-                        >
-                          <FaTimes />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                        <FiX className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="btn-primary px-8"
-                disabled={loading}
-              >
-                {loading ? 'Adding Property...' : 'Add Property'}
-              </button>
+          {/* Features Section */}
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              Property Features
+            </h3>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {featuresList.map((feature) => (
+                <label
+                  key={feature.key}
+                  className="flex items-center space-x-3 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={propertyData.features[feature.key]}
+                    onChange={() => handleFeatureToggle(feature.key)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">{feature.label}</span>
+                </label>
+              ))}
             </div>
-          </form>
-        )}
+          </div>
+
+          {/* Amenities Section */}
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              Amenities
+            </h3>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {amenitiesList.map((amenity) => (
+                <label
+                  key={amenity}
+                  className="flex items-center space-x-3 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={propertyData.amenities.includes(amenity)}
+                    onChange={() => handleAmenityToggle(amenity)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">{amenity}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Rules Section */}
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              Property Rules
+            </h3>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {rulesList.map((rule) => (
+                <label
+                  key={rule}
+                  className="flex items-center space-x-3 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={propertyData.rules.includes(rule)}
+                    onChange={() => handleRuleToggle(rule)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">{rule}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => navigate('/seller/listings')}
+              className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <FiSave className="h-4 w-4" />
+                  <span>Create Property</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

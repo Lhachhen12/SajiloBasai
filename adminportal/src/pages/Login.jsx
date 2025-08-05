@@ -221,23 +221,6 @@ const Login = () => {
               </button>
             </div>
           </form>
-
-          <div className="mt-8">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/20" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-transparent text-blue-200">
-                  Demo Credentials
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 text-center text-sm text-blue-200 bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-              <p className="font-medium">Email: admin@sajilobasai.com</p>
-              <p className="font-medium">Password: admin123</p>
-            </div>
-          </div>
         </div>
       </div>
 

@@ -6,12 +6,16 @@ import {
   updateFeedback,
   deleteFeedback,
 } from '../controllers/feedbackController.js';
+import { getPublicFeedback } from '../controllers/adminController.js';
 import { protect } from '../middlewares/auth.js';
 import { validateFeedback } from '../middlewares/validation.js';
 
 const router = express.Router();
 
-// All routes require authentication
+// Public routes (no authentication required)
+router.get('/public', getPublicFeedback);
+
+// All other routes require authentication
 router.use(protect);
 
 router.post('/', validateFeedback, createFeedback);

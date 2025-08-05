@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getFeedback, updateFeedback } from '../utils/adminApi';
-import { FiThumbsUp, FiThumbsDown, FiStar, FiCheck } from 'react-icons/fi';
+import { getFeedback, updateFeedback, deleteFeedback } from '../utils/adminApi';
+import {
+  FiThumbsUp,
+  FiThumbsDown,
+  FiStar,
+  FiCheck,
+  FiTrash2,
+} from 'react-icons/fi';
 
 const Feedback = () => {
   const [feedback, setFeedback] = useState([]);
@@ -11,7 +17,25 @@ const Feedback = () => {
     async function fetchData() {
       try {
         const feedbackData = await getFeedback();
-        setFeedback(feedbackData);
+        // Transform the data to match frontend expectations
+        const transformedFeedback = feedbackData.map((item) => ({
+          id: item._id,
+          user: item.user?.name || 'Unknown User',
+          rating: item.rating || 5,
+          comment: item.message || item.comment,
+          date: new Date(item.createdAt).toLocaleDateString(),
+          status:
+            item.status === 'resolved'
+              ? 'Approved'
+              : item.status === 'pending'
+              ? 'Pending'
+              : item.status === 'dismissed'
+              ? 'Rejected'
+              : 'Pending',
+          featured: item.featured || false,
+          showOnFrontend: item.showOnFrontend || false,
+        }));
+        setFeedback(transformedFeedback);
       } catch (error) {
         console.error('Error fetching feedback data:', error);
         // Fallback to dummy data
@@ -58,7 +82,16 @@ const Feedback = () => {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await updateFeedback(id, { status: newStatus });
+      // Convert frontend status to backend format
+      const backendStatus =
+        newStatus === 'Approved'
+          ? 'resolved'
+          : newStatus === 'Pending'
+          ? 'pending'
+          : newStatus === 'Rejected'
+          ? 'dismissed'
+          : 'pending';
+      await updateFeedback(id, { status: backendStatus });
       setFeedback(
         feedback.map((item) =>
           item.id === id ? { ...item, status: newStatus } : item
@@ -109,20 +142,59 @@ const Feedback = () => {
     );
   }
 
-  const handleFrontendDisplay = (id) => {
-    setFeedback(
-      feedback.map((item) =>
-        item.id === id
-          ? { ...item, showOnFrontend: !item.showOnFrontend }
-          : item
+  const handleFrontendDisplay = async (id) => {
+    try {
+      const feedbackItem = feedback.find((item) => item.id === id);
+      await updateFeedback(id, {
+        showOnFrontend: !feedbackItem.showOnFrontend,
+      });
+      setFeedback(
+        feedback.map((item) =>
+          item.id === id
+            ? { ...item, showOnFrontend: !item.showOnFrontend }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error('Error updating feedback frontend display:', error);
+      // Optimistic update for fallback
+      setFeedback(
+        feedback.map((item) =>
+          item.id === id
+            ? { ...item, showOnFrontend: !item.showOnFrontend }
+            : item
+        )
+      );
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (
+      window.confirm(
+        'Are you sure you want to delete this feedback? This action cannot be undone.'
       )
-    );
+    ) {
+      try {
+        const result = await deleteFeedback(id);
+        if (result.success) {
+          setFeedback(feedback.filter((item) => item.id !== id));
+        } else {
+          alert('Failed to delete feedback: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting feedback:', error);
+        alert('Error deleting feedback. Please try again.');
+      }
+    }
   };
 
   const filteredFeedback = feedback.filter((item) => {
     if (filter === 'all') return true;
     if (filter === 'featured') return item.featured;
     if (filter === 'frontend') return item.showOnFrontend;
+    if (filter === 'approved') return item.status === 'Approved';
+    if (filter === 'pending') return item.status === 'Pending';
+    if (filter === 'rejected') return item.status === 'Rejected';
     return item.status.toLowerCase() === filter;
   });
 
@@ -180,6 +252,7 @@ const Feedback = () => {
             <option value="all">All Feedback</option>
             <option value="approved">Approved</option>
             <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
             <option value="featured">Featured</option>
             <option value="frontend">Showing on Frontend</option>
           </select>
@@ -266,6 +339,13 @@ const Feedback = () => {
                             item.showOnFrontend ? 'fill-current' : ''
                           }`}
                         />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-full"
+                        title="Delete feedback"
+                      >
+                        <FiTrash2 className="h-5 w-5" />
                       </button>
                     </>
                   )}

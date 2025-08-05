@@ -83,12 +83,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // Get bookings by buyer ID
 export const getBookingsByBuyerId = async (buyerId) => {
   try {
-    const response = await fetch(`${API_URL}/api/bookings/user`, {
+    const response = await fetch(`${API_URL}/api/bookings/buyer/${buyerId}`, {
       headers: createHeaders(),
     });
 
     const data = await handleApiResponse(response);
-    return data.bookings || [];
+    return data.data || [];
   } catch (error) {
     console.error('Error fetching buyer bookings:', error);
     // Fallback to mock data
@@ -96,15 +96,31 @@ export const getBookingsByBuyerId = async (buyerId) => {
   }
 };
 
-// Get bookings by seller ID
-export const getBookingsBySellerId = async (sellerId) => {
+// Get my bookings (for current user)
+export const getMyBookings = async () => {
   try {
-    const response = await fetch(`${API_URL}/api/bookings/seller`, {
+    const response = await fetch(`${API_URL}/api/bookings/my-bookings`, {
       headers: createHeaders(),
     });
 
     const data = await handleApiResponse(response);
-    return data.bookings || [];
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching my bookings:', error);
+    // Fallback to mock data
+    return BOOKINGS;
+  }
+};
+
+// Get bookings by seller ID
+export const getBookingsBySellerId = async (sellerId) => {
+  try {
+    const response = await fetch(`${API_URL}/api/bookings/seller/${sellerId}`, {
+      headers: createHeaders(),
+    });
+
+    const data = await handleApiResponse(response);
+    return data.data || [];
   } catch (error) {
     console.error('Error fetching seller bookings:', error);
     // Fallback to mock data
@@ -122,7 +138,7 @@ export const createBooking = async (bookingData) => {
     });
 
     const data = await handleApiResponse(response);
-    return { success: true, booking: data.booking };
+    return { success: true, booking: data.data, message: data.message };
   } catch (error) {
     console.error('Error creating booking:', error);
     return { success: false, message: error.message };
@@ -142,7 +158,7 @@ export const updateBookingStatus = async (bookingId, status) => {
     );
 
     const data = await handleApiResponse(response);
-    return { success: true, booking: data.booking };
+    return { success: true, booking: data.data, message: data.message };
   } catch (error) {
     console.error('Error updating booking status:', error);
     return { success: false, message: error.message };
@@ -150,17 +166,39 @@ export const updateBookingStatus = async (bookingId, status) => {
 };
 
 // Get all bookings (admin only)
-export const getAllBookings = async () => {
+export const getAllBookings = async (
+  page = 1,
+  limit = 10,
+  status = '',
+  paymentStatus = ''
+) => {
   try {
-    const response = await fetch(`${API_URL}/api/bookings`, {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(status && { status }),
+      ...(paymentStatus && { paymentStatus }),
+    });
+
+    const response = await fetch(`${API_URL}/api/bookings?${queryParams}`, {
       headers: createHeaders(),
     });
 
     const data = await handleApiResponse(response);
-    return data.bookings || [];
+    return {
+      bookings: data.data || [],
+      total: data.total || 0,
+      totalPages: data.totalPages || 1,
+      currentPage: data.currentPage || 1,
+    };
   } catch (error) {
     console.error('Error fetching all bookings:', error);
-    return BOOKINGS; // Fallback to mock data
+    return {
+      bookings: BOOKINGS,
+      total: BOOKINGS.length,
+      totalPages: 1,
+      currentPage: 1,
+    };
   }
 };
 
@@ -172,7 +210,7 @@ export const getBookingById = async (bookingId) => {
     });
 
     const data = await handleApiResponse(response);
-    return { success: true, booking: data.booking };
+    return { success: true, booking: data.data };
   } catch (error) {
     console.error('Error fetching booking:', error);
     // Fallback to mock data
@@ -185,26 +223,88 @@ export const getBookingById = async (bookingId) => {
 };
 
 // Process payment for booking
-export const processPayment = async (bookingId, paymentData) => {
+export const processPayment = async (bookingId, paymentMethod) => {
   try {
     const response = await fetch(
       `${API_URL}/api/bookings/${bookingId}/payment`,
       {
-        method: 'POST',
+        method: 'PUT',
         headers: createHeaders(),
-        body: JSON.stringify(paymentData),
+        body: JSON.stringify({
+          paymentMethod,
+          transactionId:
+            paymentMethod === 'online'
+              ? `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+              : undefined,
+        }),
       }
     );
 
     const data = await handleApiResponse(response);
     return {
       success: true,
-      message: 'Payment processed successfully',
-      booking: data.booking,
+      message: data.message || 'Payment processed successfully',
+      booking: data.data,
     };
   } catch (error) {
     console.error('Error processing payment:', error);
     return { success: false, message: error.message };
+  }
+};
+
+// Add note to booking
+export const addBookingNote = async (bookingId, content) => {
+  try {
+    const response = await fetch(`${API_URL}/api/bookings/${bookingId}/notes`, {
+      method: 'POST',
+      headers: createHeaders(),
+      body: JSON.stringify({ content }),
+    });
+
+    const data = await handleApiResponse(response);
+    return {
+      success: true,
+      message: 'Note added successfully',
+      booking: data.data,
+    };
+  } catch (error) {
+    console.error('Error adding booking note:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+// Get booking statistics
+export const getBookingStats = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/bookings/stats/overview`, {
+      headers: createHeaders(),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, stats: data.data };
+  } catch (error) {
+    console.error('Error fetching booking stats:', error);
+    const mockBookings = BOOKINGS;
+    return {
+      success: true,
+      stats: {
+        totalBookings: mockBookings.length,
+        pendingBookings: mockBookings.filter((b) => b.status === 'pending')
+          .length,
+        confirmedBookings: mockBookings.filter((b) => b.status === 'confirmed')
+          .length,
+        completedBookings: mockBookings.filter((b) => b.status === 'completed')
+          .length,
+        totalRevenue: mockBookings.reduce(
+          (sum, b) => sum + (b.commission || 0),
+          0
+        ),
+        totalBookingValue: mockBookings.reduce(
+          (sum, b) => sum + (b.totalAmount || 0),
+          0
+        ),
+      },
+    };
   }
 };
 

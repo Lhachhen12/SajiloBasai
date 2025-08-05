@@ -61,12 +61,16 @@ const propertySchema = new mongoose.Schema({
     furnished: { type: Boolean, default: false },
     waterSupply: { type: Boolean, default: false },
   },
-  images: [
-    {
-      type: String,
-      required: true,
+  images: {
+    type: [String],
+    validate: {
+      validator: function (v) {
+        return v && v.length > 0;
+      },
+      message: 'At least one image is required',
     },
-  ],
+    required: [true, 'Property images are required'],
+  },
   sellerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

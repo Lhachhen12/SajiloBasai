@@ -358,17 +358,26 @@ export const getAllProperties = async (filters = {}) => {
       queryParams.toString() ? `?${queryParams.toString()}` : ''
     }`;
 
+    console.log('Fetching from URL:', url); // Debug log
+
     const response = await fetch(url, {
       headers: createHeaders(false),
     });
 
+    console.log('Response status:', response.status); // Debug log
+
     const data = await handleApiResponse(response);
-    return {
-      properties: data.properties || [],
+    console.log('Raw API response:', data); // Debug log
+
+    const result = {
+      properties: data.data || data.properties || [],
       totalPages: data.totalPages || 1,
       currentPage: data.currentPage || 1,
       total: data.total || 0,
     };
+
+    console.log('Processed result:', result); // Debug log
+    return result;
   } catch (error) {
     console.error('Error fetching properties:', error);
     // Fallback to mock data with filtering
@@ -414,7 +423,7 @@ export const getPropertyById = async (id) => {
     });
 
     const data = await handleApiResponse(response);
-    return { success: true, property: data.property };
+    return { success: true, property: data.data };
   } catch (error) {
     console.error('Error fetching property:', error);
     // Fallback to mock data
@@ -441,7 +450,7 @@ export const createProperty = async (propertyData) => {
     });
 
     const data = await handleApiResponse(response);
-    return { success: true, property: data.property };
+    return { success: true, property: data.data };
   } catch (error) {
     return { success: false, message: error.message };
   }
@@ -456,7 +465,7 @@ export const updateProperty = async (id, propertyData) => {
     });
 
     const data = await handleApiResponse(response);
-    return { success: true, property: data.property };
+    return { success: true, property: data.data };
   } catch (error) {
     return { success: false, message: error.message };
   }
@@ -486,7 +495,7 @@ export const createBooking = async (bookingData) => {
     });
 
     const data = await handleApiResponse(response);
-    return { success: true, booking: data.booking };
+    return { success: true, booking: data.data };
   } catch (error) {
     return { success: false, message: error.message };
   }
@@ -536,14 +545,20 @@ export const updateBookingStatus = async (bookingId, status) => {
   }
 };
 
-export const processPayment = async (bookingId, paymentData) => {
+export const processPayment = async (bookingId, paymentMethod) => {
   try {
     const response = await fetch(
       `${API_URL}/api/bookings/${bookingId}/payment`,
       {
-        method: 'POST',
+        method: 'PUT',
         headers: createHeaders(true),
-        body: JSON.stringify(paymentData),
+        body: JSON.stringify({
+          paymentMethod,
+          transactionId:
+            paymentMethod === 'online'
+              ? `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+              : undefined,
+        }),
       }
     );
 
@@ -551,7 +566,7 @@ export const processPayment = async (bookingId, paymentData) => {
     return {
       success: true,
       message: 'Payment processed successfully',
-      booking: data.booking,
+      booking: data.data,
     };
   } catch (error) {
     return { success: false, message: error.message };
@@ -750,25 +765,167 @@ export const getSellerDashboardStats = async (sellerId) => {
 };
 
 export const addProperty = async (propertyData) => {
-  await delay(800);
+  try {
+    const response = await fetch(`${API_URL}/api/properties`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify(propertyData),
+    });
 
-  const newProperty = {
-    id: PROPERTIES.length + 1,
-    ...propertyData,
-    views: {
-      total: 0,
-      loggedIn: 0,
-      anonymous: 0,
-    },
-    status: 'available',
-    featured: false,
-  };
+    const data = await handleApiResponse(response);
+    return data;
+  } catch (error) {
+    console.error('Error adding property:', error);
+    // Fallback to mock data for development
+    await delay(800);
 
-  PROPERTIES.push(newProperty);
-  return { success: true, property: newProperty };
+    const newProperty = {
+      id: PROPERTIES.length + 1,
+      ...propertyData,
+      views: {
+        total: 0,
+        loggedIn: 0,
+        anonymous: 0,
+      },
+      status: 'pending',
+      featured: false,
+    };
+
+    PROPERTIES.push(newProperty);
+    return { success: true, data: newProperty };
+  }
 };
 
 export const getPropertiesBySellerId = async (sellerId) => {
   await delay(500);
   return PROPERTIES.filter((property) => property.sellerId === sellerId);
+};
+
+// Get my properties (for authenticated sellers)
+export const getMyProperties = async (filters = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach((key) => {
+      if (filters[key]) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+
+    const response = await fetch(
+      `${API_URL}/api/properties/my/properties${
+        queryParams.toString() ? '?' + queryParams.toString() : ''
+      }`,
+      {
+        method: 'GET',
+        headers: createHeaders(true),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return data;
+  } catch (error) {
+    console.error('Error fetching my properties:', error);
+    // Fallback to mock data for development
+    await delay(500);
+    const mockProperties = PROPERTIES.filter(
+      (property) => property.sellerId === 2
+    );
+    return {
+      success: true,
+      data: mockProperties,
+      count: mockProperties.length,
+      total: mockProperties.length,
+    };
+  }
+};
+
+// Image Upload Functions
+export const uploadSingleImage = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`${API_URL}/api/images/upload-single`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: formData,
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, imageUrl: data.data.url };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const uploadMultipleImages = async (files) => {
+  try {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('images', file);
+    });
+
+    const response = await fetch(`${API_URL}/api/images/upload-multiple`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: formData,
+    });
+
+    const data = await handleApiResponse(response);
+    return {
+      success: true,
+      imageUrls: data.data.uploaded.map((img) => img.url),
+    };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+// Search Properties API
+export const searchProperties = async (searchParams) => {
+  try {
+    const queryParams = new URLSearchParams();
+
+    // Handle search query - could be from location, type, or general search
+    let searchQuery = '';
+    if (searchParams.location) {
+      searchQuery = searchParams.location;
+    } else if (searchParams.type) {
+      searchQuery = searchParams.type;
+    } else if (searchParams.q) {
+      searchQuery = searchParams.q;
+    }
+
+    if (searchQuery) queryParams.append('q', searchQuery);
+    if (searchParams.minPrice)
+      queryParams.append('minPrice', searchParams.minPrice);
+    if (searchParams.maxPrice)
+      queryParams.append('maxPrice', searchParams.maxPrice);
+    if (searchParams.page) queryParams.append('page', searchParams.page);
+    if (searchParams.limit) queryParams.append('limit', searchParams.limit);
+
+    const url = `${API_URL}/api/properties/search${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`;
+
+    const response = await fetch(url, {
+      headers: createHeaders(false),
+    });
+
+    const data = await handleApiResponse(response);
+    return {
+      properties: data.properties || data.data || [],
+      totalPages: data.totalPages || 1,
+      currentPage: data.currentPage || 1,
+      total: data.total || 0,
+    };
+  } catch (error) {
+    console.error('Error searching properties:', error);
+    // Fallback to regular getAllProperties if search fails
+    return getAllProperties(searchParams);
+  }
 };

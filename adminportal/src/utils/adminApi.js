@@ -165,15 +165,47 @@ const makeCachedRequest = async (url, options = {}, cacheKey = null) => {
 // Generate dummy booking data
 const generateBookings = (count = 10) => {
   return Array.from({ length: count }, () => ({
-    id: faker.string.uuid(),
-    buyerName: faker.person.fullName(),
-    sellerName: faker.person.fullName(),
-    propertyName: faker.location.streetAddress(),
-    date: faker.date.recent({ days: 30 }).toISOString(),
-    totalAmount: faker.number.float({ min: 1000, max: 10000, precision: 2 }),
-    get commissionAmount() {
-      return this.totalAmount * 0.05;
+    _id: faker.string.uuid(),
+    buyer: {
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
     },
+    seller: {
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
+    },
+    property: {
+      title: faker.location.streetAddress(),
+    },
+    contactInfo: {
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
+      phone: faker.phone.number(),
+    },
+    bookingDetails: {
+      checkInDate: faker.date.future().toISOString(),
+      checkOutDate: faker.date
+        .future({ refDate: faker.date.future() })
+        .toISOString(),
+      numberOfPeople: faker.number.int({ min: 1, max: 8 }),
+      duration: faker.number.int({ min: 1, max: 12 }),
+    },
+    payment: {
+      amount: faker.number.float({ min: 1000, max: 10000, precision: 2 }),
+      status: faker.helpers.arrayElement(['pending', 'completed', 'failed']),
+      method: faker.helpers.arrayElement(['online', 'cash', 'bank_transfer']),
+    },
+    status: faker.helpers.arrayElement([
+      'pending',
+      'confirmed',
+      'rejected',
+      'cancelled',
+      'completed',
+    ]),
+    commission: function () {
+      return this.payment.amount * 0.05;
+    },
+    createdAt: faker.date.recent({ days: 30 }).toISOString(),
   }));
 };
 
@@ -502,16 +534,14 @@ export const adminApi = {
       });
 
       const data = await handleApiResponse(response);
-      return { success: true, data: data.data };
+      return { success: true, booking: data.data, message: data.message };
     } catch (error) {
       console.error('Error creating booking:', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to create booking',
-      };
+      return { success: false, message: error.message };
     }
   },
 
+  // Properties Management
   getProperties: async () => {
     try {
       await ensureAuthenticated();
@@ -521,12 +551,14 @@ export const adminApi = {
       });
 
       const data = await handleApiResponse(response);
+      // Backend returns properties under 'properties' key, not 'data'
       return { success: true, data: data.properties || [] };
     } catch (error) {
       console.error('Error fetching properties:', error);
       return {
         success: false,
-        error: error.message || 'Failed to fetch properties',
+        data: [],
+        message: error.message,
       };
     }
   },
@@ -544,12 +576,33 @@ export const adminApi = {
       });
 
       const data = await handleApiResponse(response);
-      return { success: true, data: data.data };
+      return { success: true, data: data.data || [] };
     } catch (error) {
       console.error('Error fetching users:', error);
+      // Return mock data as fallback
+      const mockUsers = [
+        {
+          _id: '1',
+          name: 'John Doe',
+          email: 'john@example.com',
+          role: 'buyer',
+        },
+        {
+          _id: '2',
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+          role: 'seller',
+        },
+        {
+          _id: '3',
+          name: 'Bob Wilson',
+          email: 'bob@example.com',
+          role: 'buyer',
+        },
+      ];
       return {
-        success: false,
-        error: error.message || 'Failed to fetch users',
+        success: true,
+        data: mockUsers,
       };
     }
   },
@@ -1027,12 +1080,12 @@ export const adminApi = {
   // Feedback Management
   getFeedback: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/feedback`, {
+      const response = await fetch(`${API_URL}/api/admin/feedback`, {
         headers: createHeaders(true),
       });
 
       const data = await handleApiResponse(response);
-      return data.feedback || [];
+      return data.data || [];
     } catch (error) {
       console.error('Error fetching feedback:', error);
       // Fallback to mock data
@@ -1164,16 +1217,16 @@ export const adminApi = {
   },
 
   // Analytics
-  getAnalytics: async () => {
+  getAnalytics: async (timeRange = 'week') => {
     try {
       await ensureAuthenticated();
 
       const data = await makeCachedRequest(
-        `${API_URL}/api/admin/analytics`,
+        `${API_URL}/api/admin/analytics?timeRange=${timeRange}`,
         {
           headers: createHeaders(true),
         },
-        'analytics'
+        `analytics_${timeRange}`
       );
 
       return data.analytics || generateAnalytics();
@@ -1181,6 +1234,83 @@ export const adminApi = {
       console.error('Error fetching analytics:', error);
       // Always return fallback data for now
       return generateAnalytics();
+    }
+  },
+
+  // Get real-time analytics
+  getRealtimeAnalytics: async () => {
+    try {
+      await ensureAuthenticated();
+
+      const data = await makeCachedRequest(
+        `${API_URL}/api/admin/analytics/realtime`,
+        {
+          headers: createHeaders(true),
+        },
+        'realtime_analytics'
+      );
+
+      return data.realtime || {};
+    } catch (error) {
+      console.error('Error fetching realtime analytics:', error);
+      return {};
+    }
+  },
+
+  // Get visitor analytics
+  getVisitorAnalytics: async (timeRange = 'week') => {
+    try {
+      await ensureAuthenticated();
+
+      const data = await makeCachedRequest(
+        `${API_URL}/api/admin/analytics/visitors?timeRange=${timeRange}`,
+        {
+          headers: createHeaders(true),
+        },
+        `visitor_analytics_${timeRange}`
+      );
+
+      return data.visitors || {};
+    } catch (error) {
+      console.error('Error fetching visitor analytics:', error);
+      return {};
+    }
+  },
+
+  // Get property analytics
+  getPropertyAnalytics: async (timeRange = 'week') => {
+    try {
+      await ensureAuthenticated();
+
+      const data = await makeCachedRequest(
+        `${API_URL}/api/admin/analytics/properties?timeRange=${timeRange}`,
+        {
+          headers: createHeaders(true),
+        },
+        `property_analytics_${timeRange}`
+      );
+
+      return data.properties || {};
+    } catch (error) {
+      console.error('Error fetching property analytics:', error);
+      return {};
+    }
+  },
+
+  // Track analytics event
+  trackEvent: async (eventData) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/analytics/track`, {
+        method: 'POST',
+        headers: createHeaders(false),
+        body: JSON.stringify(eventData),
+      });
+
+      const data = await handleApiResponse(response);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error tracking analytics event:', error);
+      return { success: false, message: error.message };
     }
   },
 
@@ -1259,6 +1389,10 @@ export const adminApi = {
 export const mockApi = adminApi;
 
 export const getAnalyticsData = adminApi.getAnalytics;
+export const getRealtimeAnalytics = adminApi.getRealtimeAnalytics;
+export const getVisitorAnalytics = adminApi.getVisitorAnalytics;
+export const getPropertyAnalytics = adminApi.getPropertyAnalytics;
+export const trackAnalyticsEvent = adminApi.trackEvent;
 export const getDashboardStats = adminApi.getDashboardStats;
 export const getListings = adminApi.getListings;
 export const getUserList = adminApi.getUserList;
@@ -1287,6 +1421,96 @@ export const getAdminProfile = async () => {
       role: 'Administrator',
       lastLogin: faker.date.recent().toLocaleString(),
     };
+  }
+};
+
+export const updateAdminProfile = async (profileData) => {
+  try {
+    await ensureAuthenticated();
+
+    const response = await fetch(`${API_URL}/api/admin/profile`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(profileData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, data: data.data };
+  } catch (error) {
+    console.error('Error updating admin profile:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const updateAdminSettings = async (settings) => {
+  try {
+    await ensureAuthenticated();
+
+    const response = await fetch(`${API_URL}/api/admin/settings`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(settings),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, data: data.data };
+  } catch (error) {
+    console.error('Error updating admin settings:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const getAdminActivityLog = async (limit = 10) => {
+  try {
+    await ensureAuthenticated();
+
+    const response = await fetch(
+      `${API_URL}/api/admin/activity-log?limit=${limit}`,
+      {
+        headers: createHeaders(true),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching admin activity log:', error);
+    // Return mock data as fallback
+    return [
+      {
+        action: 'Profile accessed',
+        timestamp: new Date().toLocaleString(),
+        description: 'Admin profile page accessed',
+      },
+      {
+        action: 'User status updated',
+        timestamp: new Date(Date.now() - 3600000).toLocaleString(),
+        description: 'Updated user status for john@example.com',
+      },
+      {
+        action: 'Property approved',
+        timestamp: new Date(Date.now() - 7200000).toLocaleString(),
+        description: 'Approved property listing: Modern Apartment',
+      },
+    ];
+  }
+};
+
+export const changeAdminPassword = async (passwordData) => {
+  try {
+    await ensureAuthenticated();
+
+    const response = await fetch(`${API_URL}/api/admin/change-password`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(passwordData),
+    });
+
+    const data = await handleApiResponse(response);
+    return { success: true, message: data.message };
+  } catch (error) {
+    console.error('Error changing admin password:', error);
+    return { success: false, message: error.message };
   }
 };
 
@@ -1466,18 +1690,39 @@ export const getFeedback = adminApi.getFeedback;
 
 export const updateFeedback = async (feedbackId, updates) => {
   try {
-    const response = await fetch(`${API_URL}/api/feedback/${feedbackId}`, {
-      method: 'PUT',
-      headers: createHeaders(true),
-      body: JSON.stringify(updates),
-    });
+    const response = await fetch(
+      `${API_URL}/api/admin/feedback/${feedbackId}`,
+      {
+        method: 'PUT',
+        headers: createHeaders(true),
+        body: JSON.stringify(updates),
+      }
+    );
 
     const data = await handleApiResponse(response);
-    return { success: true, feedback: data.feedback };
+    return { success: true, feedback: data.data };
   } catch (error) {
     console.error('Error updating feedback:', error);
     // Return success for fallback behavior
     return { success: true };
+  }
+};
+
+export const deleteFeedback = async (feedbackId) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/admin/feedback/${feedbackId}`,
+      {
+        method: 'DELETE',
+        headers: createHeaders(true),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return { success: true, message: data.message };
+  } catch (error) {
+    console.error('Error deleting feedback:', error);
+    return { success: false, message: error.message };
   }
 };
 

@@ -6,7 +6,11 @@ import {
   useCallback,
 } from 'react';
 import toast from 'react-hot-toast';
-import { adminApi } from '../utils/adminApi';
+import {
+  adminApi,
+  updateAdminProfile as updateAdminProfileApi,
+  getAdminProfile,
+} from '../utils/adminApi';
 
 const AppContext = createContext();
 
@@ -20,6 +24,7 @@ export const AppProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
+  const [adminProfile, setAdminProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Check authentication on app load
@@ -33,6 +38,20 @@ export const AppProvider = ({ children }) => {
           const user = JSON.parse(storedUser);
           if (user && user.role === 'admin') {
             setCurrentUser(user);
+            // Fetch fresh profile data from API
+            try {
+              const profileResult = await getAdminProfile();
+              if (profileResult) {
+                setAdminProfile(profileResult);
+                setCurrentUser(profileResult);
+                // Update localStorage with fresh data
+                localStorage.setItem('user', JSON.stringify(profileResult));
+              }
+            } catch (profileError) {
+              console.error('Failed to fetch fresh profile:', profileError);
+              // Keep using stored user data if API fails
+              setAdminProfile(user);
+            }
           } else {
             // Not an admin, clear credentials
             localStorage.removeItem('token');
@@ -81,7 +100,49 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setCurrentUser(null);
+    setAdminProfile(null);
     toast.success('Logged out successfully');
+  };
+
+  // Admin profile management
+  const fetchAdminProfile = async () => {
+    try {
+      const result = await getAdminProfile();
+      // getAdminProfile returns data directly, not wrapped in success object
+      if (result) {
+        setAdminProfile(result);
+        setCurrentUser(result);
+        return { success: true, data: result };
+      }
+      return { success: false, message: 'No profile data received' };
+    } catch (error) {
+      console.error('Failed to fetch admin profile:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const updateAdminProfile = async (profileData) => {
+    try {
+      const result = await updateAdminProfileApi(profileData);
+      if (result.success) {
+        setAdminProfile(result.data);
+        setCurrentUser(result.data);
+        // Update localStorage to keep it in sync
+        localStorage.setItem('user', JSON.stringify(result.data));
+        toast.success('Profile updated successfully');
+        return result;
+      } else {
+        toast.error(result.message || 'Failed to update profile');
+        return result;
+      }
+    } catch (error) {
+      toast.error('Failed to update profile');
+      return { success: false, message: error.message };
+    }
+  };
+
+  const refreshAdminProfile = () => {
+    return fetchAdminProfile();
   };
 
   // Property management
@@ -453,11 +514,17 @@ export const AppProvider = ({ children }) => {
     users,
     feedback,
     currentUser,
+    adminProfile,
     loading,
 
     // Authentication
     login,
     logout,
+
+    // Admin profile management
+    fetchAdminProfile,
+    updateAdminProfile,
+    refreshAdminProfile,
 
     // Property management
     addProperty,

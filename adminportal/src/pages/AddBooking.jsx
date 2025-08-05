@@ -15,12 +15,15 @@ import {
   FiCheck,
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import { createBookingAdmin, getProperties, getUsers } from '../utils/adminApi';
+import { useAppContext } from '../context/AppContext';
+import { getProperties, getUsers, createBookingAdmin } from '../utils/adminApi';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import toast from 'react-hot-toast';
 
 const AddBooking = ({ isDark }) => {
   const navigate = useNavigate();
+  const { properties: contextProperties, users: contextUsers } =
+    useAppContext();
 
   const [loading, setLoading] = useState(false);
   const [properties, setProperties] = useState([]);
@@ -29,93 +32,183 @@ const AddBooking = ({ isDark }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
 
-  // Simplified booking data structure to match Booking model
+  // Updated booking data structure to match the backend model
   const [bookingData, setBookingData] = useState({
-    // Step 1: Basic Information (Required)
+    propertyId: '',
+    buyerId: '',
+    sellerId: '',
     contactInfo: {
       name: '',
       email: '',
       phone: '',
     },
-
-    // Step 2: Property & People (Required)
-    property: '',
-    buyer: '',
-    seller: '',
     bookingDetails: {
       numberOfPeople: 1,
       hasPets: false,
       useType: 'personal',
       message: '',
       checkInDate: '',
-      duration: '',
+      checkOutDate: '',
+      duration: 1,
     },
-
-    // Step 3: Payment (Required)
     payment: {
       method: 'cash',
       status: 'pending',
-      amount: '',
+      amount: 0,
       transactionId: '',
+      paymentDate: null,
     },
-
-    // Step 4: Additional Info (Optional)
-    additional: {
-      adminNotes: '',
-      status: 'pending',
-      notes: '',
-    },
+    status: 'pending',
+    notes: '',
+    adminNotes: '',
   });
 
   useEffect(() => {
     loadData();
   }, []);
 
+  // Calculate minimum date (today)
+  const today = new Date().toISOString().split('T')[0];
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [propertiesResult, usersResult] = await Promise.all([
-        getProperties(),
-        getUsers(),
-      ]);
+      let loadedProperties = [];
+      let loadedUsers = [];
 
-      if (propertiesResult.success) {
-        setProperties(propertiesResult.data || []);
+      // Use context data first, then fetch if needed
+      if (contextProperties && contextProperties.length > 0) {
+        setProperties(contextProperties);
+        loadedProperties = contextProperties;
+      } else {
+        console.log('Fetching properties...');
+        const propertiesResult = await getProperties();
+        console.log('Properties result:', propertiesResult);
+        if (propertiesResult?.success) {
+          const props = propertiesResult.data || [];
+          setProperties(props);
+          loadedProperties = props;
+        } else {
+          console.error('Failed to get properties:', propertiesResult);
+          setProperties([]);
+          loadedProperties = [];
+        }
       }
 
-      if (usersResult.success) {
-        setUsers(usersResult.data || []);
+      if (contextUsers && contextUsers.length > 0) {
+        setUsers(contextUsers);
+        loadedUsers = contextUsers;
+      } else {
+        console.log('Fetching users...');
+        const usersResult = await getUsers();
+        console.log('Users result:', usersResult);
+        if (usersResult?.success) {
+          const usrs = usersResult.data || [];
+          setUsers(usrs);
+          loadedUsers = usrs;
+        } else {
+          console.error('Failed to get users:', usersResult);
+          setUsers([]);
+          loadedUsers = [];
+        }
+      }
+
+      // Show appropriate toast messages based on loaded data
+      if (loadedProperties.length > 0 && loadedUsers.length > 0) {
+        toast.success(
+          `Loaded ${loadedProperties.length} properties and ${loadedUsers.length} users`
+        );
+      } else if (loadedProperties.length === 0 && loadedUsers.length > 0) {
+        toast.error('No properties found - please add some properties first');
+      } else if (loadedProperties.length > 0 && loadedUsers.length === 0) {
+        toast.error('No users found - please check your user data');
+      } else if (loadedProperties.length === 0 && loadedUsers.length === 0) {
+        toast.error('No properties or users found - please add data first');
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error('Failed to load properties and users');
+      toast.error('Failed to load data: ' + error.message);
+      // Set empty arrays as fallback
+      setProperties([]);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (section, field, value) => {
-    setBookingData((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleNestedChange = (section, nestedSection, field, value) => {
-    setBookingData((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [nestedSection]: {
-          ...prev[section][nestedSection],
+    if (section) {
+      setBookingData((prev) => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
           [field]: value,
         },
-      },
-    }));
+      }));
+    } else {
+      setBookingData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
   };
+
+  // Auto-calculate checkout date and amount when relevant fields change
+  useEffect(() => {
+    if (
+      bookingData.bookingDetails.checkInDate &&
+      bookingData.bookingDetails.duration
+    ) {
+      const checkInDate = new Date(bookingData.bookingDetails.checkInDate);
+      const checkOutDate = new Date(checkInDate);
+
+      // Add months properly - handle edge cases
+      const monthsToAdd = parseInt(bookingData.bookingDetails.duration);
+      checkOutDate.setMonth(checkOutDate.getMonth() + monthsToAdd);
+
+      // If we went to an invalid date (like Feb 30), setMonth adjusts it
+      // Make sure we get a valid date string
+      const checkOutDateString = checkOutDate.toISOString().split('T')[0];
+
+      console.log('Calculating checkout date:');
+      console.log('Check-in date:', bookingData.bookingDetails.checkInDate);
+      console.log('Duration (months):', monthsToAdd);
+      console.log('Calculated checkout date:', checkOutDateString);
+
+      setBookingData((prev) => ({
+        ...prev,
+        bookingDetails: {
+          ...prev.bookingDetails,
+          checkOutDate: checkOutDateString,
+        },
+      }));
+    }
+  }, [
+    bookingData.bookingDetails.checkInDate,
+    bookingData.bookingDetails.duration,
+  ]);
+
+  console.log(bookingData);
+
+  useEffect(() => {
+    if (bookingData.propertyId && bookingData.bookingDetails.duration) {
+      const selectedProperty = properties.find(
+        (p) => p._id === bookingData.propertyId
+      );
+      if (selectedProperty) {
+        const amount =
+          selectedProperty.price *
+          parseInt(bookingData.bookingDetails.duration);
+        setBookingData((prev) => ({
+          ...prev,
+          payment: {
+            ...prev.payment,
+            amount: amount,
+          },
+        }));
+      }
+    }
+  }, [bookingData.propertyId, bookingData.bookingDetails.duration, properties]);
 
   // Validation for each step
   const validateStep = (step) => {
@@ -128,12 +221,13 @@ const AddBooking = ({ isDark }) => {
         );
       case 2:
         return (
-          bookingData.property &&
-          bookingData.buyer &&
-          bookingData.seller &&
+          bookingData.propertyId &&
+          bookingData.buyerId &&
+          bookingData.sellerId &&
           bookingData.bookingDetails.numberOfPeople &&
           bookingData.bookingDetails.useType &&
           bookingData.bookingDetails.checkInDate &&
+          bookingData.bookingDetails.checkOutDate &&
           bookingData.bookingDetails.duration
         );
       case 3:
@@ -163,33 +257,33 @@ const AddBooking = ({ isDark }) => {
 
   const handleConfirmReset = () => {
     setBookingData({
+      propertyId: '',
+      buyerId: '',
+      sellerId: '',
       contactInfo: {
         name: '',
         email: '',
         phone: '',
       },
-      property: '',
-      buyer: '',
-      seller: '',
       bookingDetails: {
         numberOfPeople: 1,
         hasPets: false,
         useType: 'personal',
         message: '',
         checkInDate: '',
-        duration: '',
+        checkOutDate: '',
+        duration: 1,
       },
       payment: {
         method: 'cash',
         status: 'pending',
-        amount: '',
+        amount: 0,
         transactionId: '',
+        paymentDate: null,
       },
-      additional: {
-        adminNotes: '',
-        status: 'pending',
-        notes: '',
-      },
+      status: 'pending',
+      notes: '',
+      adminNotes: '',
     });
     setCurrentStep(1);
     setShowConfirm(false);
@@ -208,66 +302,63 @@ const AddBooking = ({ isDark }) => {
     try {
       setLoading(true);
 
-      // Transform data to match backend Booking model schema
-      const transformedData = {
-        property: bookingData.property,
-        buyer: bookingData.buyer,
-        seller: bookingData.seller,
-        contactInfo: {
-          name: bookingData.contactInfo.name,
-          email: bookingData.contactInfo.email,
-          phone: bookingData.contactInfo.phone,
-        },
+      // Create the booking data to match the backend API
+      const submissionData = {
+        propertyId: bookingData.propertyId,
+        buyerId: bookingData.buyerId,
+        sellerId: bookingData.sellerId,
+        contactInfo: bookingData.contactInfo,
         bookingDetails: {
-          numberOfPeople: parseInt(bookingData.bookingDetails.numberOfPeople),
+          numberOfPeople: bookingData.bookingDetails.numberOfPeople,
           hasPets: bookingData.bookingDetails.hasPets,
           useType: bookingData.bookingDetails.useType,
           message: bookingData.bookingDetails.message,
           checkInDate: bookingData.bookingDetails.checkInDate,
+          checkOutDate: bookingData.bookingDetails.checkOutDate,
           duration: bookingData.bookingDetails.duration,
         },
-        payment: {
-          method: bookingData.payment.method,
-          status: bookingData.payment.status,
-          amount: parseFloat(bookingData.payment.amount),
-          transactionId: bookingData.payment.transactionId,
-        },
-        status: bookingData.additional.status,
-        adminNotes: bookingData.additional.adminNotes,
-        notes: bookingData.additional.notes,
+        payment: bookingData.payment,
+        status: bookingData.status,
+        notes: [],
       };
 
-      const result = await createBookingAdmin(transformedData);
+      // Add admin notes if provided
+      if (bookingData.adminNotes?.trim()) {
+        submissionData.notes.push({
+          content: `Admin Note: ${bookingData.adminNotes}`,
+        });
+      }
+
+      // Add additional notes if provided
+      if (bookingData.notes?.trim()) {
+        submissionData.notes.push({
+          content: bookingData.notes,
+        });
+      }
+
+      // Debug log to see what's being sent
+      console.log('=== BOOKING SUBMISSION DEBUG ===');
+      console.log('Original booking data:', bookingData);
+      console.log('Submission data:', submissionData);
+      console.log('Check-in date:', submissionData.bookingDetails.checkInDate);
+      console.log(
+        'Check-out date:',
+        submissionData.bookingDetails.checkOutDate
+      );
+      console.log('Duration:', submissionData.bookingDetails.duration);
+      console.log('================================');
+
+      const result = await createBookingAdmin(submissionData);
 
       if (result.success) {
-        toast.success('Booking created successfully!', {
-          duration: 4000,
-          position: 'top-right',
-          style: {
-            background: '#10B981',
-            color: '#fff',
-            padding: '16px',
-            borderRadius: '8px',
-          },
-          icon: '✅',
-        });
+        toast.success(result.message || 'Booking created successfully!');
         navigate('/bookings');
       } else {
-        throw new Error(result.error || 'Failed to create booking');
+        throw new Error(result.message || 'Failed to create booking');
       }
     } catch (error) {
       console.error('Error creating booking:', error);
-      toast.error(error.message || 'Failed to create booking', {
-        duration: 4000,
-        position: 'top-right',
-        style: {
-          background: '#EF4444',
-          color: '#fff',
-          padding: '16px',
-          borderRadius: '8px',
-        },
-        icon: '❌',
-      });
+      toast.error(error.message || 'Failed to create booking');
     } finally {
       setLoading(false);
     }
@@ -370,7 +461,15 @@ const AddBooking = ({ isDark }) => {
     'Additional Info',
   ];
 
-  if (loading && properties.length === 0) {
+  // Filter users by role
+  const buyers = users.filter(
+    (user) => user.role === 'buyer' || user.role === 'user'
+  );
+  const sellers = users.filter(
+    (user) => user.role === 'seller' || user.role === 'admin'
+  );
+
+  if (loading && properties.length === 0 && users.length === 0) {
     return (
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -402,10 +501,21 @@ const AddBooking = ({ isDark }) => {
         >
           Add New Booking
         </h1>
-        <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'} mb-6`}>
+        <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
           Fill out the booking details step by step. Fields marked with{' '}
           <span className="text-red-500">*</span> are required.
         </p>
+
+        {/* Debug info - remove in production */}
+        <div
+          className={`text-xs ${
+            isDark ? 'text-gray-400' : 'text-gray-500'
+          } mb-4`}
+        >
+          Debug: Properties loaded: {properties.length}, Users loaded:{' '}
+          {users.length}
+        </div>
+
         <div className="h-1 w-24 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full mb-8"></div>
 
         <StepIndicator
@@ -524,11 +634,14 @@ const AddBooking = ({ isDark }) => {
                   )}
                 </label>
                 <select
-                  value={bookingData.property}
+                  value={bookingData.propertyId}
                   onChange={(e) =>
                     setBookingData((prev) => ({
                       ...prev,
-                      property: e.target.value,
+                      propertyId: e.target.value,
+                      sellerId:
+                        properties.find((p) => p._id === e.target.value)
+                          ?.sellerId?._id || '',
                     }))
                   }
                   className={inputStyles}
@@ -550,25 +663,30 @@ const AddBooking = ({ isDark }) => {
                 <label className={requiredLabelStyles}>
                   <FiUser className="inline-block mr-1" />
                   Buyer <span className="text-red-500">*</span>
+                  {buyers.length > 0 && (
+                    <span className="text-green-500 text-xs ml-2">
+                      ({buyers.length} available)
+                    </span>
+                  )}
                 </label>
                 <select
-                  value={bookingData.buyer}
+                  value={bookingData.buyerId}
                   onChange={(e) =>
                     setBookingData((prev) => ({
                       ...prev,
-                      buyer: e.target.value,
+                      buyerId: e.target.value,
                     }))
                   }
                   className={inputStyles}
                   required
                 >
                   <option value="">Select buyer</option>
-                  {users.map((user) => (
+                  {buyers.map((user) => (
                     <option
                       key={user._id}
                       value={user._id}
                     >
-                      {user.name} - {user.email}
+                      {user.name} - {user.email} ({user.role})
                     </option>
                   ))}
                 </select>
@@ -578,25 +696,30 @@ const AddBooking = ({ isDark }) => {
                 <label className={requiredLabelStyles}>
                   <FiUser className="inline-block mr-1" />
                   Seller <span className="text-red-500">*</span>
+                  {sellers.length > 0 && (
+                    <span className="text-green-500 text-xs ml-2">
+                      ({sellers.length} available)
+                    </span>
+                  )}
                 </label>
                 <select
-                  value={bookingData.seller}
+                  value={bookingData.sellerId}
                   onChange={(e) =>
                     setBookingData((prev) => ({
                       ...prev,
-                      seller: e.target.value,
+                      sellerId: e.target.value,
                     }))
                   }
                   className={inputStyles}
                   required
                 >
                   <option value="">Select seller</option>
-                  {users.map((user) => (
+                  {sellers.map((user) => (
                     <option
                       key={user._id}
                       value={user._id}
                     >
-                      {user.name} - {user.email}
+                      {user.name} - {user.email} ({user.role})
                     </option>
                   ))}
                 </select>
@@ -635,9 +758,8 @@ const AddBooking = ({ isDark }) => {
                   required
                 >
                   <option value="personal">Personal</option>
+                  <option value="family">Family</option>
                   <option value="business">Business</option>
-                  <option value="vacation">Vacation</option>
-                  <option value="temporary">Temporary</option>
                 </select>
               </div>
 
@@ -648,6 +770,7 @@ const AddBooking = ({ isDark }) => {
                 </label>
                 <input
                   type="date"
+                  min={today}
                   value={bookingData.bookingDetails.checkInDate}
                   onChange={(e) =>
                     handleChange(
@@ -663,18 +786,29 @@ const AddBooking = ({ isDark }) => {
 
               <div>
                 <label className={requiredLabelStyles}>
-                  Duration <span className="text-red-500">*</span>
+                  Duration (months) <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  placeholder="e.g., 6 months, 1 year"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="e.g., 6"
                   value={bookingData.bookingDetails.duration}
                   onChange={(e) =>
-                    handleChange('bookingDetails', 'duration', e.target.value)
+                    handleChange(
+                      'bookingDetails',
+                      'duration',
+                      parseInt(e.target.value) || 1
+                    )
                   }
                   className={inputStyles}
                   required
                 />
+                {bookingData.bookingDetails.checkOutDate && (
+                  <p className="text-sm text-green-600 mt-1">
+                    Check-out date: {bookingData.bookingDetails.checkOutDate}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center">
@@ -764,10 +898,8 @@ const AddBooking = ({ isDark }) => {
                   required
                 >
                   <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="card">Credit/Debit Card</option>
                   <option value="online">Online Payment</option>
-                  <option value="check">Check</option>
+                  <option value="bank_transfer">Bank Transfer</option>
                 </select>
               </div>
 
@@ -784,9 +916,9 @@ const AddBooking = ({ isDark }) => {
                   required
                 >
                   <option value="pending">Pending</option>
-                  <option value="partial">Partial Payment</option>
-                  <option value="paid">Fully Paid</option>
-                  <option value="overdue">Overdue</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                  <option value="refunded">Refunded</option>
                 </select>
               </div>
 
@@ -830,17 +962,15 @@ const AddBooking = ({ isDark }) => {
               <div>
                 <label className={optionalLabelStyles}>Booking Status</label>
                 <select
-                  value={bookingData.additional.status}
-                  onChange={(e) =>
-                    handleChange('additional', 'status', e.target.value)
-                  }
+                  value={bookingData.status}
+                  onChange={(e) => handleChange(null, 'status', e.target.value)}
                   className={inputStyles}
                 >
                   <option value="pending">Pending</option>
                   <option value="confirmed">Confirmed</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
                   <option value="cancelled">Cancelled</option>
+                  <option value="completed">Completed</option>
                 </select>
               </div>
 
@@ -849,9 +979,9 @@ const AddBooking = ({ isDark }) => {
                   Admin Notes (Optional)
                 </label>
                 <textarea
-                  value={bookingData.additional.adminNotes}
+                  value={bookingData.adminNotes}
                   onChange={(e) =>
-                    handleChange('additional', 'adminNotes', e.target.value)
+                    handleChange(null, 'adminNotes', e.target.value)
                   }
                   className={inputStyles}
                   rows="3"
@@ -864,10 +994,8 @@ const AddBooking = ({ isDark }) => {
                   Additional Notes (Optional)
                 </label>
                 <textarea
-                  value={bookingData.additional.notes}
-                  onChange={(e) =>
-                    handleChange('additional', 'notes', e.target.value)
-                  }
+                  value={bookingData.notes}
+                  onChange={(e) => handleChange(null, 'notes', e.target.value)}
                   className={inputStyles}
                   rows="3"
                   placeholder="Any additional notes or information..."

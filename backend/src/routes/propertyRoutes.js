@@ -13,15 +13,16 @@ import {
 } from '../controllers/propertyController.js';
 import { protect, roleAuth } from '../middlewares/auth.js';
 import { validateProperty } from '../middlewares/validation.js';
+import { trackPageView } from '../middlewares/analytics.js';
 
 const router = express.Router();
 
 // Public routes
-router.get('/', getAllProperties);
-router.get('/featured', getFeaturedProperties);
-router.get('/search', searchProperties);
-router.get('/seller/:sellerId', getPropertiesBySeller);
-router.get('/:id', getPropertyById);
+router.get('/', trackPageView, getAllProperties);
+router.get('/featured', trackPageView, getFeaturedProperties);
+router.get('/search', trackPageView, searchProperties);
+router.get('/seller/:sellerId', trackPageView, getPropertiesBySeller);
+router.get('/:id', trackPageView, getPropertyById);
 
 // Private routes
 router.post('/', protect, roleAuth('seller', 'admin'), createProperty);

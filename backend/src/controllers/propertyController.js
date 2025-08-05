@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Property from '../models/Property.js';
 import User from '../models/user.js';
+import { trackPropertyView } from '../middlewares/analytics.js';
 
 // @desc    Get all properties with filters
 // @route   GET /api/properties
@@ -132,6 +133,9 @@ export const getPropertyById = asyncHandler(async (req, res) => {
   }
 
   await property.save();
+
+  // Track property view in analytics
+  await trackPropertyView(req.params.id, req);
 
   res.json({
     success: true,

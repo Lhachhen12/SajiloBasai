@@ -126,8 +126,23 @@ export const validateBooking = [
     .isISO8601()
     .withMessage('Valid check-in date is required')
     .custom((value) => {
-      if (new Date(value) <= new Date()) {
-        throw new Error('Check-in date must be in the future');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (new Date(value) < today) {
+        throw new Error('Check-in date cannot be in the past');
+      }
+      return true;
+    }),
+
+  body('bookingDetails.checkOutDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Valid check-out date is required')
+    .custom((value, { req }) => {
+      if (value && req.body.bookingDetails?.checkInDate) {
+        if (new Date(value) <= new Date(req.body.bookingDetails.checkInDate)) {
+          throw new Error('Check-out date must be after check-in date');
+        }
       }
       return true;
     }),

@@ -53,6 +53,14 @@ const feedbackSchema = new mongoose.Schema({
     enum: ['low', 'medium', 'high'],
     default: 'medium',
   },
+  featured: {
+    type: Boolean,
+    default: false,
+  },
+  showOnFrontend: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

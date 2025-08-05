@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Booking from '../models/Booking.js';
 import Property from '../models/Property.js';
 import User from '../models/user.js';
+import { trackBookingEvent } from '../middlewares/analytics.js';
 
 // @desc    Create new booking
 // @route   POST /api/bookings
@@ -9,7 +10,7 @@ import User from '../models/user.js';
 export const createBooking = asyncHandler(async (req, res) => {
   const { propertyId, contactInfo, bookingDetails, paymentMethod } = req.body;
 
-  // Check if property exists
+  // Check if property exists and is available
   const property = await Property.findById(propertyId).populate('sellerId');
 
   if (!property) {
@@ -22,6 +23,37 @@ export const createBooking = asyncHandler(async (req, res) => {
     throw new Error('Property is not available for booking');
   }
 
+  // Prevent self-booking (seller cannot book their own property)
+  if (property.sellerId._id.toString() === req.user._id.toString()) {
+    res.status(400);
+    throw new Error('You cannot book your own property');
+  }
+
+  // Check for overlapping bookings
+  const checkInDate = new Date(bookingDetails.checkInDate);
+  const checkOutDate = bookingDetails.checkOutDate
+    ? new Date(bookingDetails.checkOutDate)
+    : new Date(
+        checkInDate.getTime() +
+          bookingDetails.duration * 30 * 24 * 60 * 60 * 1000
+      );
+
+  const overlappingBookings = await Booking.find({
+    property: propertyId,
+    status: { $in: ['pending', 'confirmed'] },
+    $or: [
+      {
+        'bookingDetails.checkInDate': { $lt: checkOutDate },
+        'bookingDetails.checkOutDate': { $gt: checkInDate },
+      },
+    ],
+  });
+
+  if (overlappingBookings.length > 0) {
+    res.status(400);
+    throw new Error('Property is already booked for the selected dates');
+  }
+
   // Calculate payment amount (property price * duration)
   const paymentAmount = property.price * bookingDetails.duration;
 
@@ -30,7 +62,10 @@ export const createBooking = asyncHandler(async (req, res) => {
     buyer: req.user._id,
     seller: property.sellerId._id,
     contactInfo,
-    bookingDetails,
+    bookingDetails: {
+      ...bookingDetails,
+      checkOutDate: checkOutDate,
+    },
     payment: {
       method: paymentMethod,
       amount: paymentAmount,
@@ -39,12 +74,24 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   // Populate the booking
   const populatedBooking = await Booking.findById(booking._id)
-    .populate('property', 'title price location images')
-    .populate('buyer', 'name email')
+    .populate('property', 'title price location images address type')
+    .populate('buyer', 'name email profile.phone')
     .populate('seller', 'name email profile.phone');
+
+  // Track booking start event
+  await trackBookingEvent(
+    'booking_start',
+    {
+      id: booking._id,
+      propertyId: propertyId,
+      amount: paymentAmount,
+    },
+    req
+  );
 
   res.status(201).json({
     success: true,
+    message: 'Booking created successfully',
     data: populatedBooking,
   });
 });
@@ -301,6 +348,17 @@ export const processPayment = asyncHandler(async (req, res) => {
 
   await booking.save();
 
+  // Track booking completion event
+  await trackBookingEvent(
+    'booking_complete',
+    {
+      id: booking._id,
+      propertyId: booking.property,
+      amount: booking.payment.amount,
+    },
+    req
+  );
+
   res.json({
     success: true,
     message: 'Payment processed successfully',
@@ -556,15 +614,37 @@ export const createBookingAdmin = asyncHandler(async (req, res) => {
     throw new Error('Property not found');
   }
 
-  // Check if buyer exists
-  const buyer = await User.findById(buyerId);
+  // Check if buyer exists - handle both ObjectId and display string formats
+  let buyer;
+  try {
+    // Try to find by ObjectId first
+    buyer = await User.findById(buyerId);
+  } catch (error) {
+    // If ObjectId cast fails, try to parse from display string
+    if (buyerId.includes(' - ') && buyerId.includes('@')) {
+      const email = buyerId.split(' - ')[1].split(' (')[0];
+      buyer = await User.findOne({ email });
+    }
+  }
+
   if (!buyer) {
     res.status(404);
     throw new Error('Buyer not found');
   }
 
-  // Check if seller exists
-  const seller = await User.findById(sellerId);
+  // Check if seller exists - handle both ObjectId and display string formats
+  let seller;
+  try {
+    // Try to find by ObjectId first
+    seller = await User.findById(sellerId);
+  } catch (error) {
+    // If ObjectId cast fails, try to parse from display string
+    if (sellerId.includes(' - ') && sellerId.includes('@')) {
+      const email = sellerId.split(' - ')[1].split(' (')[0];
+      seller = await User.findOne({ email });
+    }
+  }
+
   if (!seller) {
     res.status(404);
     throw new Error('Seller not found');
@@ -573,8 +653,8 @@ export const createBookingAdmin = asyncHandler(async (req, res) => {
   // Create booking with all provided data
   const booking = await Booking.create({
     property: propertyId,
-    buyer: buyerId,
-    seller: sellerId,
+    buyer: buyer._id,
+    seller: seller._id,
     contactInfo: {
       name: contactInfo.name,
       email: contactInfo.email,
@@ -586,6 +666,7 @@ export const createBookingAdmin = asyncHandler(async (req, res) => {
       useType: bookingDetails.useType,
       message: bookingDetails.message || '',
       checkInDate: bookingDetails.checkInDate,
+      checkOutDate: bookingDetails.checkOutDate,
       duration: bookingDetails.duration,
     },
     payment: {

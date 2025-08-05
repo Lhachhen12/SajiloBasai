@@ -54,6 +54,25 @@ const bookingSchema = new mongoose.Schema({
     checkInDate: {
       type: Date,
       required: [true, 'Check-in date is required'],
+      validate: {
+        validator: function (value) {
+          // Allow same day booking but not past dates
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return new Date(value) >= today;
+        },
+        message: 'Check-in date cannot be in the past',
+      },
+    },
+    checkOutDate: {
+      type: Date,
+      required: [true, 'Check-out date is required'],
+      validate: {
+        validator: function (value) {
+          return new Date(value) > new Date(this.bookingDetails.checkInDate);
+        },
+        message: 'Check-out date must be after check-in date',
+      },
     },
     duration: {
       type: Number, // in months
@@ -114,6 +133,20 @@ const bookingSchema = new mongoose.Schema({
 
 bookingSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
+
+  // Auto-calculate check-out date if not provided but duration is given
+  if (
+    this.bookingDetails.checkInDate &&
+    this.bookingDetails.duration &&
+    !this.bookingDetails.checkOutDate
+  ) {
+    const checkInDate = new Date(this.bookingDetails.checkInDate);
+    const checkOutDate = new Date(checkInDate);
+    checkOutDate.setMonth(
+      checkOutDate.getMonth() + this.bookingDetails.duration
+    );
+    this.bookingDetails.checkOutDate = checkOutDate;
+  }
 
   // Calculate commission (5% of payment amount)
   if (this.payment && this.payment.amount) {

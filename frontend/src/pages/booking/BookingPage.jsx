@@ -1,19 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getPropertyById, createBooking, processPayment } from '../../api/api';
-import { FaCalendar, FaUser, FaEnvelope, FaPhone, FaPaw, FaUsers, FaBuilding, FaMoneyBillWave } from 'react-icons/fa';
+import { getPropertyById } from '../../api/api';
+import { createBooking, processPayment } from '../../api/bookingApi';
+import {
+  FaCalendar,
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaPaw,
+  FaUsers,
+  FaBuilding,
+  FaMoneyBillWave,
+} from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser, isLoggedIn } = useAuth();
-  
+
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
@@ -22,16 +32,16 @@ const BookingPage = () => {
     numberOfPeople: 1,
     useType: 'personal',
     message: '',
-    paymentMethod: 'online'
+    paymentMethod: 'online',
   });
 
   useEffect(() => {
     if (!isLoggedIn) {
-      navigate('/login', { 
-        state: { 
+      navigate('/login', {
+        state: {
           from: `/book/${id}`,
-          message: 'Please log in to book this property'
-        }
+          message: 'Please log in to book this property',
+        },
       });
       return;
     }
@@ -39,11 +49,16 @@ const BookingPage = () => {
     const loadProperty = async () => {
       try {
         const response = await getPropertyById(id);
+        console.log('Property response:', response);
         if (response.success) {
           setProperty(response.property);
+        } else {
+          console.error('Failed to load property:', response.message);
+          toast.error('Failed to load property details');
         }
       } catch (error) {
         console.error('Error loading property:', error);
+        toast.error('Error loading property details');
       } finally {
         setLoading(false);
       }
@@ -54,9 +69,9 @@ const BookingPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -72,20 +87,38 @@ const BookingPage = () => {
     setProcessing(true);
 
     try {
-      // Create booking
+      // Calculate duration in months (default to 1 month)
+      const duration = 1;
+
+      // Create booking data to match backend API expectations
       const bookingData = {
-        userId: currentUser.id,
-        propertyId: parseInt(id),
-        ...formData,
-        totalAmount: calculateTotalAmount()
+        propertyId: id,
+        contactInfo: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+        },
+        bookingDetails: {
+          numberOfPeople: formData.numberOfPeople,
+          hasPets: formData.hasPets,
+          useType: formData.useType,
+          message: formData.message,
+          duration: duration,
+          checkInDate: new Date().toISOString(), // Immediate check-in
+        },
+        paymentMethod: formData.paymentMethod,
       };
 
+      console.log('Creating booking with data:', bookingData);
+
       const bookingResponse = await createBooking(bookingData);
-      
+
       if (bookingResponse.success) {
+        console.log('Booking created successfully:', bookingResponse.booking);
+
         // Process payment
         const paymentResponse = await processPayment(
-          bookingResponse.booking.id,
+          bookingResponse.booking._id,
           formData.paymentMethod
         );
 
@@ -93,8 +126,12 @@ const BookingPage = () => {
           toast.success('Your room has been successfully booked!');
           navigate('/buyer/bookings');
         } else {
-          toast.error('Payment failed. Please try again.');
+          toast.error(
+            paymentResponse.message || 'Payment failed. Please try again.'
+          );
         }
+      } else {
+        toast.error(bookingResponse.message || 'Failed to create booking');
       }
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -128,8 +165,12 @@ const BookingPage = () => {
         <div className="container-custom">
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Property Not Found</h2>
-              <p className="text-gray-600 mb-6">The property you're trying to book doesn't exist.</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                Property Not Found
+              </h2>
+              <p className="text-gray-600 mb-6">
+                The property you're trying to book doesn't exist.
+              </p>
               <button
                 onClick={() => navigate('/properties')}
                 className="btn-primary"
@@ -152,26 +193,40 @@ const BookingPage = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center space-x-4">
                 <img
-                  src={property.imageUrl}
+                  src={
+                    property.images?.[0] || property.imageUrl || '/room1.jpg'
+                  }
                   alt={property.title}
                   className="w-20 h-20 rounded-lg object-cover"
                 />
                 <div>
-                  <h1 className="text-xl font-bold text-gray-800 mb-1">{property.title}</h1>
-                  <p className="text-gray-600">{property.location}</p>
+                  <h1 className="text-xl font-bold text-gray-800 mb-1">
+                    {property.title}
+                  </h1>
+                  <p className="text-gray-600">
+                    {property.address?.city || property.location}
+                  </p>
                   <p className="text-lg font-bold text-primary-600 mt-1">
-                    NPR {property.price.toLocaleString()} / per month
+                    NPR {property.price?.toLocaleString()} / per month
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Booking Form */}
-            <form onSubmit={handleSubmit} className="p-6">
+            <form
+              onSubmit={handleSubmit}
+              className="p-6"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Information */}
                 <div>
-                  <label htmlFor="name" className="form-label">Full Name</label>
+                  <label
+                    htmlFor="name"
+                    className="form-label"
+                  >
+                    Full Name
+                  </label>
                   <div className="relative">
                     <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -187,7 +242,12 @@ const BookingPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="form-label">Email Address</label>
+                  <label
+                    htmlFor="email"
+                    className="form-label"
+                  >
+                    Email Address
+                  </label>
                   <div className="relative">
                     <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -203,7 +263,12 @@ const BookingPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="form-label">Phone Number</label>
+                  <label
+                    htmlFor="phone"
+                    className="form-label"
+                  >
+                    Phone Number
+                  </label>
                   <div className="relative">
                     <FaPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -219,7 +284,12 @@ const BookingPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="numberOfPeople" className="form-label">Number of People</label>
+                  <label
+                    htmlFor="numberOfPeople"
+                    className="form-label"
+                  >
+                    Number of People
+                  </label>
                   <div className="relative">
                     <FaUsers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -237,7 +307,12 @@ const BookingPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="useType" className="form-label">Purpose of Stay</label>
+                  <label
+                    htmlFor="useType"
+                    className="form-label"
+                  >
+                    Purpose of Stay
+                  </label>
                   <div className="relative">
                     <FaBuilding className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <select
@@ -263,7 +338,10 @@ const BookingPage = () => {
                     onChange={handleInputChange}
                     className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                   />
-                  <label htmlFor="hasPets" className="flex items-center text-gray-700">
+                  <label
+                    htmlFor="hasPets"
+                    className="flex items-center text-gray-700"
+                  >
                     <FaPaw className="mr-2 text-gray-400" />
                     Bringing Pets?
                   </label>
@@ -271,7 +349,12 @@ const BookingPage = () => {
               </div>
 
               <div className="mt-6">
-                <label htmlFor="message" className="form-label">Additional Message (Optional)</label>
+                <label
+                  htmlFor="message"
+                  className="form-label"
+                >
+                  Additional Message (Optional)
+                </label>
                 <textarea
                   id="message"
                   name="message"
@@ -285,7 +368,9 @@ const BookingPage = () => {
 
               {/* Payment Options */}
               <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Payment Method</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Payment Method
+                </h3>
                 <div className="space-y-4">
                   <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                     <input
@@ -297,8 +382,12 @@ const BookingPage = () => {
                       className="w-4 h-4 text-primary-600"
                     />
                     <div className="ml-3">
-                      <span className="font-medium text-gray-900">Online Payment (eSewa)</span>
-                      <p className="text-sm text-gray-500">Pay NPR 500 as advance</p>
+                      <span className="font-medium text-gray-900">
+                        Online Payment (eSewa)
+                      </span>
+                      <p className="text-sm text-gray-500">
+                        Pay NPR 500 as advance
+                      </p>
                     </div>
                   </label>
 
@@ -312,8 +401,12 @@ const BookingPage = () => {
                       className="w-4 h-4 text-primary-600"
                     />
                     <div className="ml-3">
-                      <span className="font-medium text-gray-900">Cash on Move-in</span>
-                      <p className="text-sm text-gray-500">Additional NPR 300 charge applies</p>
+                      <span className="font-medium text-gray-900">
+                        Cash on Move-in
+                      </span>
+                      <p className="text-sm text-gray-500">
+                        Additional NPR 300 charge applies
+                      </p>
                     </div>
                   </label>
                 </div>
@@ -325,7 +418,9 @@ const BookingPage = () => {
                   <div>
                     <h4 className="font-medium text-gray-900">Total Amount</h4>
                     <p className="text-sm text-gray-600">
-                      {formData.paymentMethod === 'cash' ? 'Including cash payment charge' : 'Advance payment required'}
+                      {formData.paymentMethod === 'cash'
+                        ? 'Including cash payment charge'
+                        : 'Advance payment required'}
                     </p>
                   </div>
                   <div className="text-xl font-bold text-primary-600">
@@ -341,7 +436,9 @@ const BookingPage = () => {
                   disabled={processing}
                 >
                   <FaMoneyBillWave className="mr-2" />
-                  <span>{processing ? 'Processing...' : 'Confirm Booking'}</span>
+                  <span>
+                    {processing ? 'Processing...' : 'Confirm Booking'}
+                  </span>
                 </button>
               </div>
             </form>

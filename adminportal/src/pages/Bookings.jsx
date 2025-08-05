@@ -60,6 +60,12 @@ const Bookings = ({ isDark }) => {
         getBookingStats(),
       ]);
 
+      // Debug log to see the booking data structure
+      console.log('Bookings data received:', bookingsData);
+      if (bookingsData.bookings && bookingsData.bookings.length > 0) {
+        console.log('First booking structure:', bookingsData.bookings[0]);
+      }
+
       setPagination({
         total: bookingsData.total,
         totalPages: bookingsData.totalPages,
@@ -491,14 +497,18 @@ const Bookings = ({ isDark }) => {
                         >
                           <div>
                             <div className="font-medium">
-                              {booking.guestName}
+                              {booking.buyer?.name ||
+                                booking.contactInfo?.name ||
+                                'N/A'}
                             </div>
                             <div
                               className={`text-sm ${
                                 isDark ? 'text-gray-500' : 'text-gray-600'
                               }`}
                             >
-                              {booking.guestEmail}
+                              {booking.buyer?.email ||
+                                booking.contactInfo?.email ||
+                                'N/A'}
                             </div>
                           </div>
                         </td>
@@ -517,15 +527,19 @@ const Bookings = ({ isDark }) => {
                           <div className="text-sm">
                             <div>
                               Check-in:{' '}
-                              {new Date(
-                                booking.checkInDate
-                              ).toLocaleDateString()}
+                              {booking.bookingDetails?.checkInDate
+                                ? new Date(
+                                    booking.bookingDetails.checkInDate
+                                  ).toLocaleDateString()
+                                : 'N/A'}
                             </div>
                             <div>
                               Check-out:{' '}
-                              {new Date(
-                                booking.checkOutDate
-                              ).toLocaleDateString()}
+                              {booking.bookingDetails?.checkOutDate
+                                ? new Date(
+                                    booking.bookingDetails.checkOutDate
+                                  ).toLocaleDateString()
+                                : 'N/A'}
                             </div>
                           </div>
                         </td>
@@ -550,7 +564,7 @@ const Bookings = ({ isDark }) => {
                         </td>
                         <td className="py-4 px-4">
                           <select
-                            value={booking.paymentStatus}
+                            value={booking.payment?.status || 'pending'}
                             onChange={(e) =>
                               handlePaymentStatusUpdate(
                                 booking._id,
@@ -574,7 +588,7 @@ const Bookings = ({ isDark }) => {
                             isDark ? 'text-gray-300' : 'text-gray-900'
                           }`}
                         >
-                          NPR {booking.totalPrice?.toLocaleString() || '0'}
+                          NPR {booking.payment?.amount?.toLocaleString() || '0'}
                         </td>
                         <td className="py-4 px-4">
                           <button

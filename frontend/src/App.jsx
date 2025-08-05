@@ -4,7 +4,6 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 
-
 // Pages
 import HomePage from './pages/home/HomePage';
 import PropertiesPage from './pages/properties/PropertiesPage';
@@ -31,27 +30,38 @@ import SellerSidebar from './pages/seller/SellerSidebar';
 import SellerDashboard from './pages/seller/SellerDashboard';
 import SellerListings from './pages/seller/SellerListings';
 import AddProperty from './pages/seller/AddProperty';
+import EditProperty from './pages/seller/EditProperty';
+import PropertyView from './pages/seller/PropertyView';
 import SellerBookings from './pages/seller/SellerBookings';
 import SellerEarnings from './pages/seller/SellerEarnings';
 
 // Protected route components
 const BuyerRoute = ({ children }) => {
   const { isLoggedIn, isBuyer } = useAuth();
-  
+
   if (!isLoggedIn) {
-    return <Navigate to="/login" state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location.pathname }}
+      />
+    );
   }
-  
+
   if (!isBuyer) {
     return <Navigate to="/" />;
   }
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <div className="flex flex-1 pt-16">
         <BuyerSidebar />
-        <main className="flex-1 "> {/* Reduced left padding */}
-          <div className="p-4 sm:p-6 lg:px-8"> {/* Adjusted horizontal padding */}
+        <main className="flex-1 ">
+          {' '}
+          {/* Reduced left padding */}
+          <div className="p-4 sm:p-6 lg:px-8">
+            {' '}
+            {/* Adjusted horizontal padding */}
             {children}
           </div>
         </main>
@@ -62,15 +72,20 @@ const BuyerRoute = ({ children }) => {
 
 const SellerRoute = ({ children }) => {
   const { isLoggedIn, isSeller } = useAuth();
-  
+
   if (!isLoggedIn) {
-    return <Navigate to="/login" state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location.pathname }}
+      />
+    );
   }
-  
+
   if (!isSeller) {
     return <Navigate to="/" />;
   }
-  
+
   return (
     <div className="flex flex-col lg:flex-row min-h-screen pt-16">
       <SellerSidebar />
@@ -87,108 +102,166 @@ function App() {
       <ScrollToTop />
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/properties" element={<PropertiesPage />} />
-        <Route path="/property/:id" element={<PropertyDetailPage />} />
-        <Route path="/book/:id" element={<BookingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/blog" element={<BlogPage />} />
-        <Route path="/blog/:slug" element={<BlogPostPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        
+        <Route
+          path="/"
+          element={<HomePage />}
+        />
+        <Route
+          path="/properties"
+          element={<PropertiesPage />}
+        />
+        <Route
+          path="/property/:id"
+          element={<PropertyDetailPage />}
+        />
+        <Route
+          path="/book/:id"
+          element={<BookingPage />}
+        />
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+        <Route
+          path="/register"
+          element={<RegisterPage />}
+        />
+        <Route
+          path="/contact"
+          element={<ContactPage />}
+        />
+        <Route
+          path="/about"
+          element={<AboutPage />}
+        />
+        <Route
+          path="/blog"
+          element={<BlogPage />}
+        />
+        <Route
+          path="/blog/:slug"
+          element={<BlogPostPage />}
+        />
+        <Route
+          path="/privacy"
+          element={<PrivacyPage />}
+        />
+        <Route
+          path="/terms"
+          element={<TermsPage />}
+        />
+
         {/* Buyer Routes */}
-        <Route 
-          path="/buyer/dashboard" 
+        <Route
+          path="/buyer/dashboard"
           element={
             <BuyerRoute>
               <BuyerDashboard />
             </BuyerRoute>
-          } 
+          }
         />
-        <Route 
-          path="/buyer/wishlist" 
+        <Route
+          path="/buyer/wishlist"
           element={
             <BuyerRoute>
               <BuyerWishlist />
             </BuyerRoute>
-          } 
+          }
         />
-        <Route 
-          path="/buyer/bookings" 
+        <Route
+          path="/buyer/bookings"
           element={
             <BuyerRoute>
               <BuyerBookings />
             </BuyerRoute>
-          } 
+          }
         />
-        <Route 
-          path="/buyer/profile" 
+        <Route
+          path="/buyer/profile"
           element={
             <BuyerRoute>
-              <div className="py-6 px-4 sm:px-6 lg:px-8">Profile Page (To be implemented)</div>
+              <div className="py-6 px-4 sm:px-6 lg:px-8">
+                Profile Page (To be implemented)
+              </div>
             </BuyerRoute>
-          } 
+          }
         />
-        
+
         {/* Seller Routes */}
-        <Route 
-          path="/seller/dashboard" 
+        <Route
+          path="/seller/dashboard"
           element={
             <SellerRoute>
               <SellerDashboard />
             </SellerRoute>
-          } 
+          }
         />
-        <Route 
-          path="/seller/listings" 
+        <Route
+          path="/seller/listings"
           element={
             <SellerRoute>
               <SellerListings />
             </SellerRoute>
-          } 
+          }
         />
-        <Route 
-          path="/seller/add-property" 
+        <Route
+          path="/seller/add-property"
           element={
             <SellerRoute>
               <AddProperty />
             </SellerRoute>
-          } 
+          }
         />
-        <Route 
-          path="/seller/bookings" 
+        <Route
+          path="/seller/edit-property/:id"
           element={
             <SellerRoute>
-              
+              <EditProperty />
+            </SellerRoute>
+          }
+        />
+        <Route
+          path="/seller/property/:id"
+          element={
+            <SellerRoute>
+              <PropertyView />
+            </SellerRoute>
+          }
+        />
+        <Route
+          path="/seller/bookings"
+          element={
+            <SellerRoute>
               <SellerBookings />
             </SellerRoute>
-          } 
+          }
         />
-        <Route 
-          path="/seller/earnings" 
+        <Route
+          path="/seller/earnings"
           element={
             <SellerRoute>
               <SellerEarnings />
             </SellerRoute>
-          } 
+          }
         />
-        <Route 
-          path="/seller/profile" 
+        <Route
+          path="/seller/profile"
           element={
             <SellerRoute>
-              <div className="py-6 px-4 sm:px-6 lg:px-8">Profile Page (To be implemented)</div>
+              <div className="py-6 px-4 sm:px-6 lg:px-8">
+                Profile Page (To be implemented)
+              </div>
             </SellerRoute>
-          } 
+          }
         />
-        
+
         {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route
+          path="*"
+          element={<Navigate to="/" />}
+        />
       </Routes>
-      
+
       <Footer />
     </>
   );
