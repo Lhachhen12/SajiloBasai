@@ -1,14 +1,14 @@
 // Booking API Integration
-import { API_URL } from '../config.js';
+import { API_URL } from "../config.js";
 
 // API Helper Functions
 const getAuthToken = () => {
-  return localStorage.getItem('token');
+  return localStorage.getItem("token");
 };
 
 const createHeaders = () => {
   const headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 
   const token = getAuthToken();
@@ -36,21 +36,21 @@ const BOOKINGS = [
     propertyId: 1,
     buyerId: 1,
     sellerId: 2,
-    status: 'pending',
+    status: "pending",
     totalAmount: 25000,
     commission: 1250, // 5% of total
-    createdAt: '2024-02-15',
+    createdAt: "2024-02-15",
     property: {
-      title: 'Modern Apartment in City Center',
-      imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
+      title: "Modern Apartment in City Center",
+      imageUrl: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
     },
     buyer: {
-      name: 'John Doe',
-      email: 'john@example.com',
+      name: "John Doe",
+      email: "john@example.com",
     },
     seller: {
-      name: 'Jane Smith',
-      email: 'jane@example.com',
+      name: "Jane Smith",
+      email: "jane@example.com",
     },
   },
   {
@@ -58,21 +58,21 @@ const BOOKINGS = [
     propertyId: 3,
     buyerId: 1,
     sellerId: 2,
-    status: 'approved',
+    status: "approved",
     totalAmount: 120000,
     commission: 6000,
-    createdAt: '2024-02-10',
+    createdAt: "2024-02-10",
     property: {
-      title: 'Luxury Villa with Pool',
-      imageUrl: 'https://images.unsplash.com/photo-1613977257363-707ba9348227',
+      title: "Luxury Villa with Pool",
+      imageUrl: "https://images.unsplash.com/photo-1613977257363-707ba9348227",
     },
     buyer: {
-      name: 'John Doe',
-      email: 'john@example.com',
+      name: "John Doe",
+      email: "john@example.com",
     },
     seller: {
-      name: 'Jane Smith',
-      email: 'jane@example.com',
+      name: "Jane Smith",
+      email: "jane@example.com",
     },
   },
 ];
@@ -90,7 +90,7 @@ export const getBookingsByBuyerId = async (buyerId) => {
     const data = await handleApiResponse(response);
     return data.data || [];
   } catch (error) {
-    console.error('Error fetching buyer bookings:', error);
+    console.error("Error fetching buyer bookings:", error);
     // Fallback to mock data
     return BOOKINGS.filter((booking) => booking.buyerId === buyerId);
   }
@@ -106,7 +106,7 @@ export const getMyBookings = async () => {
     const data = await handleApiResponse(response);
     return data.data || [];
   } catch (error) {
-    console.error('Error fetching my bookings:', error);
+    console.error("Error fetching my bookings:", error);
     // Fallback to mock data
     return BOOKINGS;
   }
@@ -122,7 +122,7 @@ export const getBookingsBySellerId = async (sellerId) => {
     const data = await handleApiResponse(response);
     return data.data || [];
   } catch (error) {
-    console.error('Error fetching seller bookings:', error);
+    console.error("Error fetching seller bookings:", error);
     // Fallback to mock data
     return BOOKINGS.filter((booking) => booking.sellerId === sellerId);
   }
@@ -132,7 +132,7 @@ export const getBookingsBySellerId = async (sellerId) => {
 export const createBooking = async (bookingData) => {
   try {
     const response = await fetch(`${API_URL}/api/bookings`, {
-      method: 'POST',
+      method: "POST",
       headers: createHeaders(),
       body: JSON.stringify(bookingData),
     });
@@ -140,18 +140,37 @@ export const createBooking = async (bookingData) => {
     const data = await handleApiResponse(response);
     return { success: true, booking: data.data, message: data.message };
   } catch (error) {
-    console.error('Error creating booking:', error);
+    console.error("Error creating booking:", error);
     return { success: false, message: error.message };
   }
 };
 
+export const esewaBooking = async (bookingData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/payments/initialize-esewa`, {
+      method: "POST",
+      headers: createHeaders(),
+      body: JSON.stringify(bookingData),
+    });
+    const data = await handleApiResponse(response);
+    return {
+      success: true,
+      message: data.message,
+      paymentInitiate: data.paymentInitiate,
+      paymentUrl: data.payment_url,
+    };
+  } catch (error) {
+    console.error("Error initiating Esewa payment:", error);
+    return { success: false, message: error.message };
+  }
+};
 // Update booking status
 export const updateBookingStatus = async (bookingId, status) => {
   try {
     const response = await fetch(
       `${API_URL}/api/bookings/${bookingId}/status`,
       {
-        method: 'PUT',
+        method: "PUT",
         headers: createHeaders(),
         body: JSON.stringify({ status }),
       }
@@ -160,7 +179,7 @@ export const updateBookingStatus = async (bookingId, status) => {
     const data = await handleApiResponse(response);
     return { success: true, booking: data.data, message: data.message };
   } catch (error) {
-    console.error('Error updating booking status:', error);
+    console.error("Error updating booking status:", error);
     return { success: false, message: error.message };
   }
 };
@@ -169,8 +188,8 @@ export const updateBookingStatus = async (bookingId, status) => {
 export const getAllBookings = async (
   page = 1,
   limit = 10,
-  status = '',
-  paymentStatus = ''
+  status = "",
+  paymentStatus = ""
 ) => {
   try {
     const queryParams = new URLSearchParams({
@@ -192,7 +211,7 @@ export const getAllBookings = async (
       currentPage: data.currentPage || 1,
     };
   } catch (error) {
-    console.error('Error fetching all bookings:', error);
+    console.error("Error fetching all bookings:", error);
     return {
       bookings: BOOKINGS,
       total: BOOKINGS.length,
@@ -212,13 +231,13 @@ export const getBookingById = async (bookingId) => {
     const data = await handleApiResponse(response);
     return { success: true, booking: data.data };
   } catch (error) {
-    console.error('Error fetching booking:', error);
+    console.error("Error fetching booking:", error);
     // Fallback to mock data
     const booking = BOOKINGS.find((b) => b.id === parseInt(bookingId));
     if (booking) {
       return { success: true, booking };
     }
-    return { success: false, message: 'Booking not found' };
+    return { success: false, message: "Booking not found" };
   }
 };
 
@@ -228,12 +247,12 @@ export const processPayment = async (bookingId, paymentMethod) => {
     const response = await fetch(
       `${API_URL}/api/bookings/${bookingId}/payment`,
       {
-        method: 'PUT',
+        method: "PUT",
         headers: createHeaders(),
         body: JSON.stringify({
           paymentMethod,
           transactionId:
-            paymentMethod === 'online'
+            paymentMethod === "online"
               ? `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
               : undefined,
         }),
@@ -243,11 +262,11 @@ export const processPayment = async (bookingId, paymentMethod) => {
     const data = await handleApiResponse(response);
     return {
       success: true,
-      message: data.message || 'Payment processed successfully',
+      message: data.message || "Payment processed successfully",
       booking: data.data,
     };
   } catch (error) {
-    console.error('Error processing payment:', error);
+    console.error("Error processing payment:", error);
     return { success: false, message: error.message };
   }
 };
@@ -256,7 +275,7 @@ export const processPayment = async (bookingId, paymentMethod) => {
 export const addBookingNote = async (bookingId, content) => {
   try {
     const response = await fetch(`${API_URL}/api/bookings/${bookingId}/notes`, {
-      method: 'POST',
+      method: "POST",
       headers: createHeaders(),
       body: JSON.stringify({ content }),
     });
@@ -264,11 +283,11 @@ export const addBookingNote = async (bookingId, content) => {
     const data = await handleApiResponse(response);
     return {
       success: true,
-      message: 'Note added successfully',
+      message: "Note added successfully",
       booking: data.data,
     };
   } catch (error) {
-    console.error('Error adding booking note:', error);
+    console.error("Error adding booking note:", error);
     return { success: false, message: error.message };
   }
 };
@@ -283,17 +302,17 @@ export const getBookingStats = async () => {
     const data = await handleApiResponse(response);
     return { success: true, stats: data.data };
   } catch (error) {
-    console.error('Error fetching booking stats:', error);
+    console.error("Error fetching booking stats:", error);
     const mockBookings = BOOKINGS;
     return {
       success: true,
       stats: {
         totalBookings: mockBookings.length,
-        pendingBookings: mockBookings.filter((b) => b.status === 'pending')
+        pendingBookings: mockBookings.filter((b) => b.status === "pending")
           .length,
-        confirmedBookings: mockBookings.filter((b) => b.status === 'confirmed')
+        confirmedBookings: mockBookings.filter((b) => b.status === "confirmed")
           .length,
-        completedBookings: mockBookings.filter((b) => b.status === 'completed')
+        completedBookings: mockBookings.filter((b) => b.status === "completed")
           .length,
         totalRevenue: mockBookings.reduce(
           (sum, b) => sum + (b.commission || 0),
@@ -313,7 +332,7 @@ export const getSellerEarningsSummary = async (sellerId) => {
   await delay(600);
 
   const sellerBookings = BOOKINGS.filter(
-    (booking) => booking.sellerId === sellerId && booking.status === 'approved'
+    (booking) => booking.sellerId === sellerId && booking.status === "approved"
   );
 
   const totalEarnings = sellerBookings.reduce(

@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { getPropertyById } from '../../api/api';
-import { createBooking, processPayment } from '../../api/bookingApi';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { getPropertyById } from "../../api/api";
+import {
+  createBooking,
+  esewaBooking,
+  processPayment,
+} from "../../api/bookingApi";
 import {
   FaCalendar,
   FaUser,
@@ -12,8 +16,8 @@ import {
   FaUsers,
   FaBuilding,
   FaMoneyBillWave,
-} from 'react-icons/fa';
-import toast from 'react-hot-toast';
+} from "react-icons/fa";
+import toast from "react-hot-toast";
 
 const BookingPage = () => {
   const { id } = useParams();
@@ -25,22 +29,22 @@ const BookingPage = () => {
   const [processing, setProcessing] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: currentUser?.name || '',
-    email: currentUser?.email || '',
-    phone: '',
+    name: currentUser?.name || "",
+    email: currentUser?.email || "",
+    phone: "",
     hasPets: false,
     numberOfPeople: 1,
-    useType: 'personal',
-    message: '',
-    paymentMethod: 'online',
+    useType: "personal",
+    message: "",
+    paymentMethod: "online",
   });
 
   useEffect(() => {
     if (!isLoggedIn) {
-      navigate('/login', {
+      navigate("/login", {
         state: {
           from: `/book/${id}`,
-          message: 'Please log in to book this property',
+          message: "Please log in to book this property",
         },
       });
       return;
@@ -49,16 +53,16 @@ const BookingPage = () => {
     const loadProperty = async () => {
       try {
         const response = await getPropertyById(id);
-        console.log('Property response:', response);
+        console.log("Property response:", response);
         if (response.success) {
           setProperty(response.property);
         } else {
-          console.error('Failed to load property:', response.message);
-          toast.error('Failed to load property details');
+          console.error("Failed to load property:", response.message);
+          toast.error("Failed to load property details");
         }
       } catch (error) {
-        console.error('Error loading property:', error);
-        toast.error('Error loading property details');
+        console.error("Error loading property:", error);
+        toast.error("Error loading property details");
       } finally {
         setLoading(false);
       }
@@ -71,14 +75,14 @@ const BookingPage = () => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const calculateTotalAmount = () => {
     if (!property) return 0;
     const baseAmount = property.price;
-    const extraCharge = formData.paymentMethod === 'cash' ? 300 : 0;
+    const extraCharge = formData.paymentMethod === "cash" ? 300 : 0;
     return baseAmount + extraCharge;
   };
 
@@ -109,12 +113,12 @@ const BookingPage = () => {
         paymentMethod: formData.paymentMethod,
       };
 
-      console.log('Creating booking with data:', bookingData);
+      console.log("Creating booking with data:", bookingData);
 
       const bookingResponse = await createBooking(bookingData);
 
       if (bookingResponse.success) {
-        console.log('Booking created successfully:', bookingResponse.booking);
+        console.log("Booking created successfully:", bookingResponse.booking);
 
         // Process payment
         const paymentResponse = await processPayment(
@@ -123,24 +127,64 @@ const BookingPage = () => {
         );
 
         if (paymentResponse.success) {
-          toast.success('Your room has been successfully booked!');
-          navigate('/buyer/bookings');
+          toast.success("Your room has been successfully booked!");
+          navigate("/buyer/bookings");
         } else {
           toast.error(
-            paymentResponse.message || 'Payment failed. Please try again.'
+            paymentResponse.message || "Payment failed. Please try again."
           );
         }
       } else {
-        toast.error(bookingResponse.message || 'Failed to create booking');
+        toast.error(bookingResponse.message || "Failed to create booking");
       }
     } catch (error) {
-      console.error('Error creating booking:', error);
-      toast.error('Failed to create booking. Please try again.');
+      console.error("Error creating booking:", error);
+      toast.error("Failed to create booking. Please try again.");
     } finally {
       setProcessing(false);
     }
   };
+  const handleSubmitEsewa = async (e) => {
+    e.preventDefault();
+    setProcessing(true);
 
+    try {
+      // Calculate duration in months (default to 1 month)
+      const duration = 1;
+
+      // Create booking data to match backend API expectations
+      const bookingData = {
+        propertyId: id,
+        contactInfo: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+        },
+        bookingDetails: {
+          numberOfPeople: formData.numberOfPeople,
+          hasPets: formData.hasPets,
+          useType: formData.useType,
+          message: formData.message,
+          duration: duration,
+          checkInDate: new Date().toISOString(), // Immediate check-in
+        },
+        paymentMethod: formData.paymentMethod,
+      };
+
+      const bookingResponse = await esewaBooking(bookingData);
+      console.log("Booking response:", bookingResponse);
+      if (bookingResponse.paymentUrl) {
+        window.location.href = bookingResponse.paymentUrl; // Redirect to stripe checkout url
+      } else {
+        toast.error("Invalid response from server.");
+      }
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      toast.error("Failed to create booking. Please try again.");
+    } finally {
+      setProcessing(false);
+    }
+  };
   if (loading) {
     return (
       <div className="pt-20 pb-12 min-h-screen bg-gray-50">
@@ -172,7 +216,7 @@ const BookingPage = () => {
                 The property you're trying to book doesn't exist.
               </p>
               <button
-                onClick={() => navigate('/properties')}
+                onClick={() => navigate("/properties")}
                 className="btn-primary"
               >
                 Browse Properties
@@ -194,7 +238,7 @@ const BookingPage = () => {
               <div className="flex items-center space-x-4">
                 <img
                   src={
-                    property.images?.[0] || property.imageUrl || '/room1.jpg'
+                    property.images?.[0] || property.imageUrl || "/room1.jpg"
                   }
                   alt={property.title}
                   className="w-20 h-20 rounded-lg object-cover"
@@ -215,16 +259,20 @@ const BookingPage = () => {
 
             {/* Booking Form */}
             <form
-              onSubmit={handleSubmit}
+              onSubmit={(e) => {
+                if (formData.paymentMethod === "online") {
+                  handleSubmitEsewa(e);
+                } else {
+                  handleSubmit(e);
+                }
+              }}
               className="p-6"
             >
+              {" "}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Information */}
                 <div>
-                  <label
-                    htmlFor="name"
-                    className="form-label"
-                  >
+                  <label htmlFor="name" className="form-label">
                     Full Name
                   </label>
                   <div className="relative">
@@ -242,10 +290,7 @@ const BookingPage = () => {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="email"
-                    className="form-label"
-                  >
+                  <label htmlFor="email" className="form-label">
                     Email Address
                   </label>
                   <div className="relative">
@@ -263,10 +308,7 @@ const BookingPage = () => {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="phone"
-                    className="form-label"
-                  >
+                  <label htmlFor="phone" className="form-label">
                     Phone Number
                   </label>
                   <div className="relative">
@@ -284,10 +326,7 @@ const BookingPage = () => {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="numberOfPeople"
-                    className="form-label"
-                  >
+                  <label htmlFor="numberOfPeople" className="form-label">
                     Number of People
                   </label>
                   <div className="relative">
@@ -307,10 +346,7 @@ const BookingPage = () => {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="useType"
-                    className="form-label"
-                  >
+                  <label htmlFor="useType" className="form-label">
                     Purpose of Stay
                   </label>
                   <div className="relative">
@@ -347,12 +383,8 @@ const BookingPage = () => {
                   </label>
                 </div>
               </div>
-
               <div className="mt-6">
-                <label
-                  htmlFor="message"
-                  className="form-label"
-                >
+                <label htmlFor="message" className="form-label">
                   Additional Message (Optional)
                 </label>
                 <textarea
@@ -365,7 +397,6 @@ const BookingPage = () => {
                   placeholder="Any special requirements or questions?"
                 ></textarea>
               </div>
-
               {/* Payment Options */}
               <div className="mt-8 p-4 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -377,7 +408,7 @@ const BookingPage = () => {
                       type="radio"
                       name="paymentMethod"
                       value="online"
-                      checked={formData.paymentMethod === 'online'}
+                      checked={formData.paymentMethod === "online"}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600"
                     />
@@ -396,7 +427,7 @@ const BookingPage = () => {
                       type="radio"
                       name="paymentMethod"
                       value="cash"
-                      checked={formData.paymentMethod === 'cash'}
+                      checked={formData.paymentMethod === "cash"}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600"
                     />
@@ -411,16 +442,15 @@ const BookingPage = () => {
                   </label>
                 </div>
               </div>
-
               {/* Total Amount */}
               <div className="mt-6 p-4 bg-primary-50 rounded-lg">
                 <div className="flex justify-between items-center">
                   <div>
                     <h4 className="font-medium text-gray-900">Total Amount</h4>
                     <p className="text-sm text-gray-600">
-                      {formData.paymentMethod === 'cash'
-                        ? 'Including cash payment charge'
-                        : 'Advance payment required'}
+                      {formData.paymentMethod === "cash"
+                        ? "Including cash payment charge"
+                        : "Advance payment required"}
                     </p>
                   </div>
                   <div className="text-xl font-bold text-primary-600">
@@ -428,7 +458,6 @@ const BookingPage = () => {
                   </div>
                 </div>
               </div>
-
               <div className="mt-6">
                 <button
                   type="submit"
@@ -437,7 +466,7 @@ const BookingPage = () => {
                 >
                   <FaMoneyBillWave className="mr-2" />
                   <span>
-                    {processing ? 'Processing...' : 'Confirm Booking'}
+                    {processing ? "Processing..." : "Confirm Booking"}
                   </span>
                 </button>
               </div>
