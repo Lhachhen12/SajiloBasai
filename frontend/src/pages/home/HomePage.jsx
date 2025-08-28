@@ -82,8 +82,8 @@ const HomePage = () => {
       {/* About Section */}
       <AboutSection />
 
-      {/* Testimonials */}
-      {/* <TestimonialsSection /> */}
+      {/* Testimonials - Now enabled */}
+      <TestimonialsSection />
 
       {/* Modern CTA Section */}
       <section className="relative py-16 overflow-hidden">
@@ -125,8 +125,8 @@ const HomePage = () => {
           </h2>
 
           <p className="text-lg text-white/80 max-w-xl mx-auto mb-8 leading-relaxed">
-            Find your perfect place to live quick, easy, and hassle-free Start
-            your search with Nepal’s trusted room and flat booking platform
+            Find your perfect place to live quick, easy, and hassle-free. Start
+            your search with Nepal's trusted room and flat booking platform
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">

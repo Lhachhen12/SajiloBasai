@@ -159,14 +159,14 @@ export const validateBooking = [
 ];
 
 // Feedback validation
+
 export const validateFeedback = [
   body('type')
-    .isIn(['property_review', 'platform_feedback', 'bug_report', 'suggestion'])
+    .isIn(['property_review', 'platform_feedback', 'bug_report', 'suggestion', 'testimonial', 'general'])
     .withMessage('Invalid feedback type'),
 
   body('subject')
-    .notEmpty()
-    .withMessage('Subject is required')
+    .optional() // Made optional
     .isLength({ max: 100 })
     .withMessage('Subject cannot exceed 100 characters'),
 
@@ -177,7 +177,8 @@ export const validateFeedback = [
     .withMessage('Message must be between 10 and 1000 characters'),
 
   body('rating')
-    .optional()
+    .notEmpty()
+    .withMessage('Rating is required')
     .isInt({ min: 1, max: 5 })
     .withMessage('Rating must be between 1 and 5'),
 

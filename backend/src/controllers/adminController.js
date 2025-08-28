@@ -523,36 +523,6 @@ export const getAnalyticsData = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get all feedback
-// @route   GET /api/admin/feedback
-// @access  Private (Admin)
-export const getAllFeedback = asyncHandler(async (req, res) => {
-  const { type, status, priority, page = 1, limit = 10 } = req.query;
-
-  let query = {};
-  if (type) query.type = type;
-  if (status) query.status = status;
-  if (priority) query.priority = priority;
-
-  const feedback = await Feedback.find(query)
-    .populate('user', 'name email')
-    .populate('property', 'title')
-    .sort('-createdAt')
-    .limit(limit * 1)
-    .skip((page - 1) * limit);
-
-  const total = await Feedback.countDocuments(query);
-
-  res.json({
-    success: true,
-    count: feedback.length,
-    total,
-    totalPages: Math.ceil(total / limit),
-    currentPage: parseInt(page),
-    data: feedback,
-  });
-});
-
 // @desc    Update feedback status
 // @route   PUT /api/admin/feedback/:id/status
 // @access  Private (Admin)
@@ -643,34 +613,7 @@ export const deleteFeedback = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get public feedback for frontend display
-// @route   GET /api/feedback/public
-// @access  Public
-export const getPublicFeedback = asyncHandler(async (req, res) => {
-  const { limit = 10, featured = false } = req.query;
 
-  let query = {
-    showOnFrontend: true,
-    status: 'resolved', // Only show approved feedback
-  };
-
-  if (featured === 'true') {
-    query.featured = true;
-  }
-
-  const feedback = await Feedback.find(query)
-    .populate('user', 'name')
-    .populate('property', 'title')
-    .select('user property type subject message rating createdAt featured')
-    .sort('-createdAt')
-    .limit(parseInt(limit));
-
-  res.json({
-    success: true,
-    count: feedback.length,
-    data: feedback,
-  });
-});
 
 // @desc    Get recent listings for dashboard
 // @route   GET /api/admin/recent-listings
@@ -1629,5 +1572,185 @@ export const deleteAdminCmsPage = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Page deleted successfully',
+  });
+});
+
+// Add these functions to your existing adminController.js file
+// Replace or update the existing feedback functions with these:
+
+// @desc    Get all feedback (Admin only) - Updated version
+// @route   GET /api/admin/feedback
+// @access  Private (Admin)
+export const getAllFeedback = asyncHandler(async (req, res) => {
+  const { status, featured, showOnFrontend, category, page = 1, limit = 10 } = req.query;
+  
+  // Build filter object
+  const filter = {};
+  if (status) {
+    // Convert frontend status to backend format
+    if (status === 'approved') filter.status = 'resolved';
+    else if (status === 'pending') filter.status = 'pending';
+    else if (status === 'rejected') filter.status = 'dismissed';
+    else filter.status = status;
+  }
+  if (featured !== undefined) filter.featured = featured === 'true';
+  if (showOnFrontend !== undefined) filter.showOnFrontend = showOnFrontend === 'true';
+  if (category) filter.category = category;
+
+  // Calculate pagination
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+
+  const feedback = await Feedback.find(filter)
+    .populate('user', 'name email')
+    .populate('resolvedBy', 'name')
+    .populate('property', 'title')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(parseInt(limit));
+
+  const total = await Feedback.countDocuments(filter);
+
+  res.json({
+    success: true,
+    data: feedback,
+    pagination: {
+      current: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      total
+    }
+  });
+});
+
+// @desc    Update feedback status/properties (Admin only) - New function
+// @route   PATCH /api/admin/feedback/:id
+// @access  Private (Admin)
+export const updateFeedbackAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  
+  // Convert frontend status to backend format if status is being updated
+  if (updates.status) {
+    if (updates.status === 'approved') updates.status = 'resolved';
+    else if (updates.status === 'rejected') updates.status = 'dismissed';
+  }
+  
+  // If status is being changed to resolved, add resolved info
+  if (updates.status === 'resolved') {
+    updates.resolvedBy = req.user._id;
+    updates.resolvedAt = new Date();
+  }
+
+  const feedback = await Feedback.findByIdAndUpdate(
+    id,
+    updates,
+    { new: true, runValidators: true }
+  ).populate('user', 'name email').populate('resolvedBy', 'name');
+
+  if (!feedback) {
+    res.status(404);
+    throw new Error('Feedback not found');
+  }
+
+  res.json({
+    success: true,
+    message: 'Feedback updated successfully',
+    data: feedback
+  });
+});
+
+// @desc    Delete feedback (Admin only) - New function
+// @route   DELETE /api/admin/feedback/:id
+// @access  Private (Admin)
+export const deleteFeedbackAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  const feedback = await Feedback.findByIdAndDelete(id);
+
+  if (!feedback) {
+    res.status(404);
+    throw new Error('Feedback not found');
+  }
+
+  res.json({
+    success: true,
+    message: 'Feedback deleted successfully'
+  });
+});
+
+// @desc    Get feedback statistics (Admin only) - New function
+// @route   GET /api/admin/feedback/stats
+// @access  Private (Admin)
+export const getFeedbackStats = asyncHandler(async (req, res) => {
+  const stats = await Feedback.aggregate([
+    {
+      $facet: {
+        statusCounts: [
+          { $group: { _id: '$status', count: { $sum: 1 } } }
+        ],
+        categoryCounts: [
+          { $group: { _id: '$category', count: { $sum: 1 } } }
+        ],
+        ratingStats: [
+          {
+            $group: {
+              _id: null,
+              averageRating: { $avg: '$rating' },
+              totalFeedback: { $sum: 1 },
+              featuredCount: {
+                $sum: { $cond: ['$featured', 1, 0] }
+              },
+              frontendCount: {
+                $sum: { $cond: ['$showOnFrontend', 1, 0] }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]);
+
+  res.json({
+    success: true,
+    data: stats[0]
+  });
+});
+
+// Update the existing getPublicFeedback function to work with our testimonials
+export const getPublicFeedback = asyncHandler(async (req, res) => {
+  const { limit = 10, featured = false } = req.query;
+
+  let query = {
+    showOnFrontend: true,
+    status: { $in: ['resolved', 'reviewed'] }
+  };
+
+  if (featured === 'true') {
+    query.featured = true;
+  }
+
+  const feedback = await Feedback.find(query)
+    .populate('user', 'name')
+    .populate('property', 'title')
+    .select('user property type subject message rating createdAt featured name')
+    .sort({ featured: -1, createdAt: -1 })
+    .limit(parseInt(limit));
+
+  // Format testimonials for frontend
+  const formattedTestimonials = feedback.map(testimonial => ({
+    id: testimonial._id,
+    name: testimonial.user?.name || testimonial.name,
+    rating: testimonial.rating,
+    text: testimonial.message,
+    featured: testimonial.featured,
+    date: testimonial.createdAt,
+    // Default values for missing fields
+    role: 'Verified User',
+    location: 'Happy Customer',
+    image: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(testimonial.user?.name || testimonial.name) + '&background=3B82F6&color=fff'
+  }));
+
+  res.json({
+    success: true,
+    data: formattedTestimonials,
   });
 });

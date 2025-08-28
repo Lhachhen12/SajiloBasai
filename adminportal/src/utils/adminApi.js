@@ -1,5 +1,7 @@
 // Admin API Integration with Backend
 import { faker } from '@faker-js/faker';
+// utils/adminApi.js
+// import { API_URL, createHeaders, handleApiResponse, ensureAuthenticated } from './api';
 
 // API Configuration
 const API_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000';
@@ -209,16 +211,6 @@ const generateBookings = (count = 10) => {
   }));
 };
 
-// Generate dummy feedback data
-const generateFeedback = (count = 8) => {
-  return Array.from({ length: count }, () => ({
-    id: faker.string.uuid(),
-    userName: faker.person.fullName(),
-    message: faker.lorem.paragraph(),
-    date: faker.date.recent({ days: 60 }).toISOString(),
-    status: faker.helpers.arrayElement(['Pending', 'Approved']),
-  }));
-};
 
 // Generate dummy pages data
 const generatePages = (count = 5) => {
@@ -1077,40 +1069,6 @@ export const adminApi = {
     }
   },
 
-  // Feedback Management
-  getFeedback: async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/admin/feedback`, {
-        headers: createHeaders(true),
-      });
-
-      const data = await handleApiResponse(response);
-      return data.data || [];
-    } catch (error) {
-      console.error('Error fetching feedback:', error);
-      // Fallback to mock data
-      return generateFeedback();
-    }
-  },
-
-  respondToFeedback: async (feedbackId, response) => {
-    try {
-      const apiResponse = await fetch(
-        `${API_URL}/api/feedback/${feedbackId}/respond`,
-        {
-          method: 'PUT',
-          headers: createHeaders(true),
-          body: JSON.stringify({ response }),
-        }
-      );
-
-      const data = await handleApiResponse(apiResponse);
-      return { success: true, feedback: data.feedback };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
-  },
-
   // CMS Management
   getPages: async () => {
     try {
@@ -1383,6 +1341,104 @@ export const adminApi = {
       ];
     }
   },
+};
+// Feedback API functions
+// Feedback API functions - ensure these match your backend
+export const getFeedback = async (params = {}) => {
+  try {
+    await ensureAuthenticated();
+    
+    const queryParams = new URLSearchParams(params);
+    const response = await fetch(
+      `${API_URL}/api/admin/feedback?${queryParams}`,
+      {
+        headers: createHeaders(true),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return data;
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    return { 
+      success: false, 
+      data: [],
+      pagination: { current: 1, pages: 1, total: 0 }
+    };
+  }
+};
+
+export const updateFeedback = async (feedbackId, updates) => {
+  try {
+    await ensureAuthenticated();
+    
+    const response = await fetch(
+      `${API_URL}/api/admin/feedback/${feedbackId}`,
+      {
+        method: 'PATCH',
+        headers: createHeaders(true),
+        body: JSON.stringify(updates),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return data;
+  } catch (error) {
+    console.error('Error updating feedback:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const deleteFeedback = async (feedbackId) => {
+  try {
+    await ensureAuthenticated();
+    
+    const response = await fetch(
+      `${API_URL}/api/admin/feedback/${feedbackId}`,
+      {
+        method: 'DELETE',
+        headers: createHeaders(true),
+      }
+    );
+
+    const data = await handleApiResponse(response);
+    return data;
+  } catch (error) {
+    console.error('Error deleting feedback:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const getFeedbackStats = async () => {
+  try {
+    await ensureAuthenticated();
+    
+    const response = await fetch(`${API_URL}/api/admin/feedback/stats`, {
+      headers: createHeaders(true)
+    });
+    
+    const data = await handleApiResponse(response);
+    return data;
+  } catch (error) {
+    console.error('Error fetching feedback stats:', error);
+    return {
+      success: true,
+      data: {
+        statusCounts: [
+          { _id: 'pending', count: 0 },
+          { _id: 'resolved', count: 0 },
+          { _id: 'dismissed', count: 0 }
+        ],
+        categoryCounts: [],
+        ratingStats: {
+          averageRating: 0,
+          totalFeedback: 0,
+          featuredCount: 0,
+          frontendCount: 0
+        }
+      }
+    };
+  }
 };
 
 // Legacy exports for backward compatibility
@@ -1684,48 +1740,6 @@ export const deleteReport = async (reportId) => {
     return { success: false, message: error.message };
   }
 };
-
-// Feedback API functions
-export const getFeedback = adminApi.getFeedback;
-
-export const updateFeedback = async (feedbackId, updates) => {
-  try {
-    const response = await fetch(
-      `${API_URL}/api/admin/feedback/${feedbackId}`,
-      {
-        method: 'PUT',
-        headers: createHeaders(true),
-        body: JSON.stringify(updates),
-      }
-    );
-
-    const data = await handleApiResponse(response);
-    return { success: true, feedback: data.data };
-  } catch (error) {
-    console.error('Error updating feedback:', error);
-    // Return success for fallback behavior
-    return { success: true };
-  }
-};
-
-export const deleteFeedback = async (feedbackId) => {
-  try {
-    const response = await fetch(
-      `${API_URL}/api/admin/feedback/${feedbackId}`,
-      {
-        method: 'DELETE',
-        headers: createHeaders(true),
-      }
-    );
-
-    const data = await handleApiResponse(response);
-    return { success: true, message: data.message };
-  } catch (error) {
-    console.error('Error deleting feedback:', error);
-    return { success: false, message: error.message };
-  }
-};
-
 // Image Upload API functions
 export const uploadSingleImage = async (imageFile) => {
   try {

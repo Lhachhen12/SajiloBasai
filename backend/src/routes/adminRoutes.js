@@ -11,11 +11,6 @@ import {
   getRealtimeAnalytics,
   getVisitorAnalytics,
   getPropertyAnalytics,
-  getAllFeedback,
-  updateFeedbackStatus,
-  updateFeedback,
-  deleteFeedback,
-  getPublicFeedback,
   getRecentListings,
   getAdminProfile,
   updateAdminProfile,
@@ -35,6 +30,16 @@ import {
   updateAdminCmsPage,
   deleteAdminCmsPage,
 } from '../controllers/adminController.js';
+
+import {
+  getAllFeedback,
+  getFeedbackStats,
+  updateFeedbackStatus,
+  updateFeedbackAdmin,
+  deleteFeedbackAdmin,
+  getPublicFeedback
+} from '../controllers/adminFeedbackController.js';
+
 import { protect, roleAuth } from '../middlewares/auth.js';
 import User from '../models/user.js';
 import asyncHandler from 'express-async-handler';
@@ -47,10 +52,13 @@ router.get('/test', (req, res) => {
   res.json({ message: 'Admin routes working', status: 'success' });
 });
 
-// Public analytics tracking endpoint (doesn't require auth)
+// Public analytics tracking endpoint (no auth required)
 router.post('/analytics/track', trackAnalyticsEvent);
 
-// Admin login for testing - remove this in production
+// Public feedback endpoint (no auth required)
+router.get('/feedback/public', getPublicFeedback);
+
+// Admin login for testing (remove in production)
 router.post(
   '/test-login',
   asyncHandler(async (req, res) => {
@@ -92,11 +100,14 @@ router.get('/stats', getDashboardStats);
 router.get('/analytics', getAnalyticsData);
 router.get('/recent-listings', getRecentListings);
 
-// Feedback management
+// ============ FEEDBACK MANAGEMENT ROUTES ============
 router.get('/feedback', getAllFeedback);
+router.get('/feedback/stats', getFeedbackStats);
 router.put('/feedback/:id/status', updateFeedbackStatus);
-router.put('/feedback/:id', updateFeedback);
-router.delete('/feedback/:id', deleteFeedback);
+router.put('/feedback/:id', updateFeedbackAdmin);   // use admin version
+router.patch('/feedback/:id', updateFeedbackAdmin);
+router.delete('/feedback/:id', deleteFeedbackAdmin);
+// ============ END FEEDBACK ROUTES ============
 
 // Admin profile management
 router.get('/profile', getAdminProfile);
@@ -121,10 +132,9 @@ router.post('/cms/pages', createAdminCmsPage);
 router.put('/cms/pages/:id', updateAdminCmsPage);
 router.delete('/cms/pages/:id', deleteAdminCmsPage);
 
-// Protected Analytics Routes (require authentication)
+// Protected Analytics Routes
 router.get('/analytics/realtime', getRealtimeAnalytics);
 router.get('/analytics/visitors', getVisitorAnalytics);
 router.get('/analytics/properties', getPropertyAnalytics);
 
-// Export the router as default
 export default router;
