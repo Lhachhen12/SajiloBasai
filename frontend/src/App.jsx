@@ -1,51 +1,48 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import ScrollToTop from './components/ScrollToTop';
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import ScrollToTop from "./components/ScrollToTop";
 
 // Pages
-import HomePage from './pages/home/HomePage';
-import PropertiesPage from './pages/properties/PropertiesPage';
-import PropertyDetailPage from './pages/property/PropertyDetailPage';
-import BookingPage from './pages/booking/BookingPage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ContactPage from './pages/ContactPage';
-import AboutPage from './pages/cms/AboutPage';
-import BlogPage from './pages/cms/BlogPage';
-import BlogPostPage from './pages/cms/BlogPostPage';
-import PrivacyPage from './pages/cms/PrivacyPage';
-import TermsPage from './pages/cms/TermsPage';
-import CustomToaster from './components/toaster/CustomToaster';
+import HomePage from "./pages/home/HomePage";
+import PropertiesPage from "./pages/properties/PropertiesPage";
+import PropertyDetailPage from "./pages/property/PropertyDetailPage";
+import BookingPage from "./pages/booking/BookingPage";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import ContactPage from "./pages/ContactPage";
+import AboutPage from "./pages/cms/AboutPage";
+import BlogPage from "./pages/cms/BlogPage";
+import BlogPostPage from "./pages/cms/BlogPostPage";
+import PrivacyPage from "./pages/cms/PrivacyPage";
+import TermsPage from "./pages/cms/TermsPage";
+import CustomToaster from "./components/toaster/CustomToaster";
 
 // Buyer pages
-import BuyerSidebar from './pages/buyer/BuyerSidebar';
-import BuyerDashboard from './pages/buyer/BuyerDashboard';
-import BuyerWishlist from './pages/buyer/BuyerWishlist';
-import BuyerBookings from './pages/buyer/BuyerBookings';
+import BuyerSidebar from "./pages/buyer/BuyerSidebar";
+import BuyerDashboard from "./pages/buyer/BuyerDashboard";
+import BuyerWishlist from "./pages/buyer/BuyerWishlist";
+import BuyerBookings from "./pages/buyer/BuyerBookings";
 
 // Seller pages
-import SellerSidebar from './pages/seller/SellerSidebar';
-import SellerDashboard from './pages/seller/SellerDashboard';
-import SellerListings from './pages/seller/SellerListings';
-import AddProperty from './pages/seller/AddProperty';
-import EditProperty from './pages/seller/EditProperty';
-import PropertyView from './pages/seller/PropertyView';
-import SellerBookings from './pages/seller/SellerBookings';
-import SellerEarnings from './pages/seller/SellerEarnings';
+import SellerSidebar from "./pages/seller/SellerSidebar";
+import SellerDashboard from "./pages/seller/SellerDashboard";
+import SellerListings from "./pages/seller/SellerListings";
+import AddProperty from "./pages/seller/AddProperty";
+import EditProperty from "./pages/seller/EditProperty";
+import PropertyView from "./pages/seller/PropertyView";
+import SellerBookings from "./pages/seller/SellerBookings";
+import SellerEarnings from "./pages/seller/SellerEarnings";
+import AdminChat from "./components/AdminChat";
+import SellerChat from "./components/SellerChat";
 
 // Protected route components
 const BuyerRoute = ({ children }) => {
   const { isLoggedIn, isBuyer } = useAuth();
 
   if (!isLoggedIn) {
-    return (
-      <Navigate
-        to="/login"
-        state={{ from: location.pathname }}
-      />
-    );
+    return <Navigate to="/login" state={{ from: location.pathname }} />;
   }
 
   if (!isBuyer) {
@@ -57,10 +54,10 @@ const BuyerRoute = ({ children }) => {
       <div className="flex flex-1 pt-16">
         <BuyerSidebar />
         <main className="flex-1 ">
-          {' '}
+          {" "}
           {/* Reduced left padding */}
           <div className="p-4 sm:p-6 lg:px-8">
-            {' '}
+            {" "}
             {/* Adjusted horizontal padding */}
             {children}
           </div>
@@ -74,12 +71,7 @@ const SellerRoute = ({ children }) => {
   const { isLoggedIn, isSeller } = useAuth();
 
   if (!isLoggedIn) {
-    return (
-      <Navigate
-        to="/login"
-        state={{ from: location.pathname }}
-      />
-    );
+    return <Navigate to="/login" state={{ from: location.pathname }} />;
   }
 
   if (!isSeller) {
@@ -102,54 +94,18 @@ function App() {
       <ScrollToTop />
       <Routes>
         {/* Public Routes */}
-        <Route
-          path="/"
-          element={<HomePage />}
-        />
-        <Route
-          path="/properties"
-          element={<PropertiesPage />}
-        />
-        <Route
-          path="/property/:id"
-          element={<PropertyDetailPage />}
-        />
-        <Route
-          path="/book/:id"
-          element={<BookingPage />}
-        />
-        <Route
-          path="/login"
-          element={<LoginPage />}
-        />
-        <Route
-          path="/register"
-          element={<RegisterPage />}
-        />
-        <Route
-          path="/contact"
-          element={<ContactPage />}
-        />
-        <Route
-          path="/about"
-          element={<AboutPage />}
-        />
-        <Route
-          path="/blog"
-          element={<BlogPage />}
-        />
-        <Route
-          path="/blog/:slug"
-          element={<BlogPostPage />}
-        />
-        <Route
-          path="/privacy"
-          element={<PrivacyPage />}
-        />
-        <Route
-          path="/terms"
-          element={<TermsPage />}
-        />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/properties" element={<PropertiesPage />} />
+        <Route path="/property/:id" element={<PropertyDetailPage />} />
+        <Route path="/book/:id" element={<BookingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
 
         {/* Buyer Routes */}
         <Route
@@ -254,12 +210,17 @@ function App() {
             </SellerRoute>
           }
         />
+        <Route
+          path="/seller/chat"
+          element={
+            <AuthProvider>
+              <SellerChat />
+            </AuthProvider>
+          }
+        />
 
         {/* Catch all route */}
-        <Route
-          path="*"
-          element={<Navigate to="/" />}
-        />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
 
       <Footer />
