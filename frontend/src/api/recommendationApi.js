@@ -1,5 +1,73 @@
 // Recommendation API Integration
 import { API_URL } from '../config.js';
+export const performSuperSearch = async (query, page = 1, limit = 12) => {
+  try {
+    // First try the API
+    const response = await fetch(`${API_URL}/api/properties/super-search?page=${page}&limit=${limit}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        console.log('API Super Search Results:', data.data);
+        // Return the properties with the additional metadata
+        return {
+          properties: data.data.properties || [],
+          pagination: data.data.pagination || {},
+          searchParams: data.data.searchParams || {},
+          isAISearch: true
+        };
+      }
+    } else {
+      console.warn('API super search failed, falling back to local search');
+      throw new Error('API super search failed');
+    }
+  } catch (error) {
+    console.error('API Super search error, using fallback:', error);
+    // Fallback to your existing enhanced local search
+    try {
+      const fallbackResults = await superSearch(query);
+      return {
+        properties: fallbackResults || [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalProperties: fallbackResults?.length || 0,
+          hasNextPage: false,
+          hasPrevPage: false
+        },
+        searchParams: {
+          originalQuery: query,
+          parsedQuery: null,
+          filtersApplied: {}
+        },
+        isAISearch: false
+      };
+    } catch (fallbackError) {
+      console.error('Fallback search also failed:', fallbackError);
+      return {
+        properties: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          totalProperties: 0,
+          hasNextPage: false,
+          hasPrevPage: false
+        },
+        searchParams: {
+          originalQuery: query,
+          parsedQuery: null,
+          filtersApplied: {}
+        },
+        isAISearch: false
+      };
+    }
+  }
+};
 
 // API Helper Functions
 const getAuthToken = () => {
@@ -53,6 +121,7 @@ const MOCK_PROPERTIES = [
 ];
 
 // Enhanced search function with natural language processing
+
 const searchProperties = (query, properties = MOCK_PROPERTIES) => {
   if (!query) return properties;
 
@@ -70,7 +139,22 @@ const searchProperties = (query, properties = MOCK_PROPERTIES) => {
   }
 
   const queryLower = normalizedQuery;
-  let results = [...properties];
+  
+  // Normalize properties to ensure all required fields exist
+  const normalizedProperties = properties.map(property => ({
+    ...property,
+    id: property.id || property._id,
+    title: property.title || '',
+    description: property.description || '',
+    location: property.location || '',
+    type: property.type || '',
+    price: property.price || 0,
+    featured: property.featured || false,
+    views: property.views || { total: 0, anonymous: 0 },
+    imageUrl: property.images?.[0] || property.imageUrl || '/placeholder-property.jpg'
+  }));
+
+  let results = [...normalizedProperties];
 
   // Enhanced price matching patterns
   const priceTerms = [
@@ -88,9 +172,7 @@ const searchProperties = (query, properties = MOCK_PROPERTIES) => {
     const match = queryLower.match(regex);
     if (match) {
       const amount1 = parseInt(match[2]) * (match[3] === 'k' ? 1000 : 1);
-      const amount2 = match[4]
-        ? parseInt(match[4]) * (match[5] === 'k' ? 1000 : 1)
-        : null;
+      const amount2 = match[4] ? parseInt(match[4]) * (match[5] === 'k' ? 1000 : 1) : null;
 
       if (modifier === 'max') {
         priceFilters.push({ max: amount1 });
@@ -120,51 +202,17 @@ const searchProperties = (query, properties = MOCK_PROPERTIES) => {
 
   // Enhanced location detection
   const locations = [
-    'kathmandu',
-    'patan',
-    'bhaktapur',
-    'pokhara',
-    'lalitpur',
-    'boudha',
-    'kirtipur',
-    'dhapasi',
-    'thamel',
-    'jawalakhel',
-    'baneshwor',
-    'dillibazar',
-    'gongabu',
-    'koteshwor',
-    'chabahil',
+    'kathmandu', 'patan', 'bhaktapur', 'pokhara', 'lalitpur', 'boudha',
+    'kirtipur', 'dhapasi', 'thamel', 'jawalakhel', 'baneshwor', 'dillibazar',
+    'gongabu', 'koteshwor', 'chabahil', 'jorpati', 'mulpani'
   ];
 
   const matchedLocations = locations.filter((loc) => queryLower.includes(loc));
 
-  // Enhanced budget terms with more synonyms
+  // Enhanced budget terms
   const budgetTerms = {
-    cheap: [
-      'cheap',
-      'affordable',
-      'low cost',
-      'budget',
-      'economical',
-      'low price',
-      'low priced',
-      'inexpensive',
-      'reasonable',
-      'value',
-    ],
-    expensive: [
-      'expensive',
-      'luxury',
-      'premium',
-      'high end',
-      'deluxe',
-      'high price',
-      'high priced',
-      'upscale',
-      'exclusive',
-      'posh',
-    ],
+    cheap: ['cheap', 'affordable', 'low cost', 'budget', 'economical', 'low price', 'inexpensive', 'reasonable'],
+    expensive: ['expensive', 'luxury', 'premium', 'high end', 'deluxe', 'upscale', 'exclusive'],
   };
 
   let budgetFilter;
@@ -174,62 +222,46 @@ const searchProperties = (query, properties = MOCK_PROPERTIES) => {
     }
   });
 
-  // Apply all filters
+  // Apply all filters with safe property access
   const filteredAndSortedResults = results
     .filter((property) => {
-      // Price filters (multiple possible)
-      const priceMatch =
-        priceFilters.length === 0
-          ? true
-          : priceFilters.some((filter) => {
-              if (filter.min !== undefined && filter.max !== undefined) {
-                return (
-                  property.price >= filter.min && property.price <= filter.max
-                );
-              } else if (filter.min !== undefined) {
-                return property.price >= filter.min;
-              } else if (filter.max !== undefined) {
-                return property.price <= filter.max;
-              }
-              return true;
-            });
+      // Price filters
+      const priceMatch = priceFilters.length === 0 ? true : priceFilters.some((filter) => {
+        if (filter.min !== undefined && filter.max !== undefined) {
+          return property.price >= filter.min && property.price <= filter.max;
+        } else if (filter.min !== undefined) {
+          return property.price >= filter.min;
+        } else if (filter.max !== undefined) {
+          return property.price <= filter.max;
+        }
+        return true;
+      });
 
-      // Budget term matching with more flexible thresholds
-      const budgetMatch =
-        budgetFilter === 'cheap'
-          ? property.price <= 25000 // Increased threshold
-          : budgetFilter === 'expensive'
-          ? property.price >= 20000
-          : true;
+      // Budget term matching
+      const budgetMatch = budgetFilter === 'cheap' ? property.price <= 25000 
+        : budgetFilter === 'expensive' ? property.price >= 20000 
+        : true;
 
-      // Type matching (can match multiple types)
-      const typeMatch =
-        matchedTypes.length === 0 ? true : matchedTypes.includes(property.type);
+      // Type matching
+      const typeMatch = matchedTypes.length === 0 ? true : matchedTypes.includes(property.type);
 
-      // Location matching (can match multiple locations)
-      const locationMatch =
-        matchedLocations.length === 0
-          ? true
-          : matchedLocations.some((loc) =>
-              property.location.toLowerCase().includes(loc)
-            );
-
-      // Text matching in title/description with partial matches
-      const textMatch =
-        property.title.toLowerCase().includes(queryLower) ||
-        property.description.toLowerCase().includes(queryLower) ||
-        queryLower
-          .split(' ')
-          .some(
-            (term) =>
-              term.length > 3 &&
-              (property.title.toLowerCase().includes(term) ||
-                property.description.toLowerCase().includes(term))
-          );
-
-      return (
-        priceMatch && budgetMatch && typeMatch && locationMatch && textMatch
+      // Location matching - SAFE VERSION
+      const locationMatch = matchedLocations.length === 0 ? true : matchedLocations.some((loc) =>
+        (property.location || '').toLowerCase().includes(loc)
       );
+
+      // Text matching - SAFE VERSION
+      const textMatch = 
+        (property.title || '').toLowerCase().includes(queryLower) ||
+        (property.description || '').toLowerCase().includes(queryLower) ||
+        queryLower.split(' ').some((term) =>
+          term.length > 3 && (
+            (property.title || '').toLowerCase().includes(term) ||
+            (property.description || '').toLowerCase().includes(term)
+          )
+        );
+
+      return priceMatch && budgetMatch && typeMatch && locationMatch && textMatch;
     })
     .sort((a, b) => {
       // Sort by relevance score
@@ -241,29 +273,12 @@ const searchProperties = (query, properties = MOCK_PROPERTIES) => {
       if (b.featured) scoreB += 2;
 
       // Boost by views
-      scoreA += a.views.total * 0.001;
-      scoreB += b.views.total * 0.001;
+      scoreA += (a.views?.total || 0) * 0.001;
+      scoreB += (b.views?.total || 0) * 0.001;
 
       // Boost exact matches
-      if (a.title.toLowerCase().includes(queryLower)) scoreA += 1;
-      if (b.title.toLowerCase().includes(queryLower)) scoreB += 1;
-
-      // For price filters, boost closer matches
-      if (priceFilters.length > 0) {
-        priceFilters.forEach((filter) => {
-          if (filter.min !== undefined && filter.max !== undefined) {
-            const mid = (filter.min + filter.max) / 2;
-            scoreA -= Math.abs(a.price - mid) * 0.0001;
-            scoreB -= Math.abs(b.price - mid) * 0.0001;
-          } else if (filter.min !== undefined) {
-            scoreA += a.price >= filter.min ? 0.5 : 0;
-            scoreB += b.price >= filter.min ? 0.5 : 0;
-          } else if (filter.max !== undefined) {
-            scoreA += a.price <= filter.max ? 0.5 : 0;
-            scoreB += b.price <= filter.max ? 0.5 : 0;
-          }
-        });
-      }
+      if ((a.title || '').toLowerCase().includes(queryLower)) scoreA += 1;
+      if ((b.title || '').toLowerCase().includes(queryLower)) scoreB += 1;
 
       return scoreB - scoreA;
     });
@@ -271,10 +286,7 @@ const searchProperties = (query, properties = MOCK_PROPERTIES) => {
   // Cache the results
   try {
     if (filteredAndSortedResults.length > 0) {
-      sessionStorage.setItem(
-        cacheKey,
-        JSON.stringify(filteredAndSortedResults)
-      );
+      sessionStorage.setItem(cacheKey, JSON.stringify(filteredAndSortedResults));
     }
   } catch (e) {
     console.warn('Failed to cache results', e);
@@ -386,9 +398,9 @@ export const getRecommendations = async (
   }
 };
 
-export const performSuperSearch = async (query) => {
-  return await superSearch(query);
-};
+// export const performSuperSearch = async (query) => {
+//   return await superSearch(query);
+// };
 
 // Helper function to filter by criteria
 const filterByCriteria = (properties, criteria) => {

@@ -9,14 +9,16 @@ const Hero = () => {
   const navigate = useNavigate();
   
   const handleSearchResults = async (results, query) => {
-    // Pass the results directly through session storage
-    sessionStorage.setItem('superSearchResults', JSON.stringify({
-      query,
-      results
-    }));
-    
-    navigate(`/properties?superSearch=${encodeURIComponent(query)}`);
-  };
+  if (!results || !query) {
+    // If no results or query, navigate to properties page without super search
+    navigate('/properties');
+    return;
+  }
+  
+  // Navigate to properties page with super search query as URL parameter
+  // The PropertiesPage will handle the actual search when it detects the parameter
+  navigate(`/properties?superSearch=${encodeURIComponent(query)}`);
+};
 
   return (
     <div className="relative h-screen min-h-[700px] overflow-hidden">

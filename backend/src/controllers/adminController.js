@@ -5,6 +5,7 @@ import Booking from '../models/Booking.js';
 import Feedback from '../models/Feedback.js';
 import Analytics from '../models/Analytics.js';
 import { CmsPage } from '../models/CmsPage.js';
+import { bulkGeocodeProperties as bulkGeocodeUtil } from '../utils/locationService.js';
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -1111,6 +1112,149 @@ export const bulkUpdatePropertiesStatus = asyncHandler(async (req, res) => {
       status,
     },
   });
+});
+
+// @desc    Bulk geocode properties without coordinates
+// @route   POST /api/admin/properties/bulk-geocode
+// @access  Private (Admin)
+export const bulkGeocodePropertiesAdmin = asyncHandler(async (req, res) => {
+  try {
+    const { limit = 50, delay = 1000 } = req.body;
+
+    // Find properties without coordinates
+    const propertiesWithoutCoordinates = await Property.find({
+      status: 'available',
+      $or: [
+        { 'coordinates.latitude': { $exists: false } },
+        { 'coordinates.longitude': { $exists: false } },
+        { 'coordinates.latitude': null },
+        { 'coordinates.longitude': null }
+      ]
+    }).limit(parseInt(limit));
+
+    if (propertiesWithoutCoordinates.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No properties need geocoding',
+        data: {
+          processed: 0,
+          successful: 0,
+          failed: 0,
+          results: []
+        }
+      });
+    }
+
+    console.log(`Starting bulk geocoding for ${propertiesWithoutCoordinates.length} properties...`);
+
+    // Perform bulk geocoding using the utility function
+    const geocodeResults = await bulkGeocodeUtil(
+      propertiesWithoutCoordinates,
+      parseInt(delay)
+    );
+
+    // Update successful geocoding results in database
+    const updatePromises = geocodeResults
+      .filter(result => result.geocoded)
+      .map(result => 
+        Property.findByIdAndUpdate(
+          result.property._id,
+          {
+            coordinates: {
+              ...result.coordinates,
+              lastUpdated: new Date()
+            }
+          }
+        )
+      );
+
+    await Promise.all(updatePromises);
+
+    const successful = geocodeResults.filter(r => r.geocoded).length;
+    const failed = geocodeResults.filter(r => !r.geocoded).length;
+
+    res.json({
+      success: true,
+      message: `Geocoding completed. ${successful} successful, ${failed} failed.`,
+      data: {
+        processed: geocodeResults.length,
+        successful,
+        failed,
+        results: geocodeResults.map(r => ({
+          propertyId: r.property._id,
+          title: r.property.title,
+          location: r.property.location,
+          geocoded: r.geocoded,
+          coordinates: r.geocoded ? r.coordinates : null,
+          error: !r.geocoded ? r.reason : null
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Bulk geocoding error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Bulk geocoding failed',
+      error: error.message
+    });
+  }
+});
+
+// @desc    Get geocoding statistics
+// @route   GET /api/admin/properties/geocoding-stats
+// @access  Private (Admin)
+export const getGeocodingStats = asyncHandler(async (req, res) => {
+  try {
+    // Count properties with coordinates
+    const withCoordinates = await Property.countDocuments({
+      'coordinates.latitude': { $exists: true, $ne: null },
+      'coordinates.longitude': { $exists: true, $ne: null }
+    });
+
+    // Count properties without coordinates
+    const withoutCoordinates = await Property.countDocuments({
+      $or: [
+        { 'coordinates.latitude': { $exists: false } },
+        { 'coordinates.longitude': { $exists: false } },
+        { 'coordinates.latitude': null },
+        { 'coordinates.longitude': null }
+      ]
+    });
+
+    // Count properties that need geocoding (available properties without coordinates)
+    const needGeocoding = await Property.countDocuments({
+      status: 'available',
+      $or: [
+        { 'coordinates.latitude': { $exists: false } },
+        { 'coordinates.longitude': { $exists: false } },
+        { 'coordinates.latitude': null },
+        { 'coordinates.longitude': null }
+      ]
+    });
+
+    // Total properties
+    const totalProperties = await Property.countDocuments();
+
+    res.json({
+      success: true,
+      data: {
+        withCoordinates,
+        withoutCoordinates,
+        needGeocoding,
+        totalProperties,
+        geocodedPercentage: totalProperties > 0 
+          ? Math.round((withCoordinates / totalProperties) * 100) 
+          : 0
+      }
+    });
+  } catch (error) {
+    console.error('Geocoding stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch geocoding statistics',
+      error: error.message
+    });
+  }
 });
 
 // @desc    Create property (admin)

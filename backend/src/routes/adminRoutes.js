@@ -23,6 +23,8 @@ import {
   deletePropertyAdmin,
   getPropertyDetailsAdmin,
   bulkUpdatePropertiesStatus,
+  getGeocodingStats,
+  bulkGeocodePropertiesAdmin, 
   createPropertyAdmin,
   getAdminCmsPages,
   getAdminCmsPageById,
@@ -124,6 +126,8 @@ router.put('/properties/:id/status', updatePropertyStatus);
 router.put('/properties/:id/featured', togglePropertyFeatured);
 router.delete('/properties/:id', deletePropertyAdmin);
 router.put('/properties/bulk-status', bulkUpdatePropertiesStatus);
+router.get('/properties/geocoding-stats', getGeocodingStats);
+router.post('/properties/bulk-geocode', bulkGeocodePropertiesAdmin); 
 
 // CMS management
 router.get('/cms/pages', getAdminCmsPages);

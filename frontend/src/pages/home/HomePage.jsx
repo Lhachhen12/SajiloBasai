@@ -1,15 +1,86 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Hero from './Hero';
 import SearchFilters from '../../components/SearchFilters';
 import FeaturedProperties from './FeaturedProperties';
 import AboutSection from './AboutSection';
 import TestimonialsSection from './TestimonialsSection';
-import { useNavigate } from 'react-router-dom';
+import LocationBasedRecommendations from '../../components/LocationBasedRecommendations';
+import LocationPrompt from '../../components/LocationPrompt';
+import { getUserLocation, getCachedLocation } from '../../utils/LocationService';
+import toast from 'react-hot-toast';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [userLocation, setUserLocation] = useState(null);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [locationDetected, setLocationDetected] = useState(false);
+  const [searchCriteria, setSearchCriteria] = useState(null);
+
+  useEffect(() => {
+    // Check for cached location first
+    const cachedLocation = getCachedLocation();
+    if (cachedLocation) {
+      setUserLocation(cachedLocation);
+      setLocationDetected(true);
+    } else {
+      // Show location prompt after 2 seconds
+      const timer = setTimeout(() => {
+        setShowLocationPrompt(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleLocationAllow = async () => {
+    try {
+      setShowLocationPrompt(false);
+      const location = await getUserLocation({ showPrompt: true });
+      
+      setUserLocation(location);
+      setLocationDetected(true);
+      
+      if (location.source === 'gps') {
+        toast.success(`Location detected: ${location.city || 'Your area'}`);
+      } else if (location.source === 'ip') {
+        toast.success(`Location detected from IP: ${location.city || 'Your area'}`);
+      } else {
+        toast.success('Using default location: Kathmandu');
+      }
+    } catch (error) {
+      console.error('Location detection error:', error);
+      toast.error('Could not detect location. Using default location.');
+      
+      // Set default location
+      const defaultLocation = {
+        latitude: 27.7172,
+        longitude: 85.3240,
+        city: 'Kathmandu',
+        source: 'default'
+      };
+      setUserLocation(defaultLocation);
+      setLocationDetected(true);
+    }
+  };
+
+  const handleLocationDecline = () => {
+    setShowLocationPrompt(false);
+    // Set default location
+    const defaultLocation = {
+      latitude: 27.7172,
+      longitude: 85.3240,
+      city: 'Kathmandu',
+      source: 'default'
+    };
+    setUserLocation(defaultLocation);
+    setLocationDetected(true);
+  };
 
   const handleSearch = async (searchParams) => {
     try {
+      // Store search criteria for recommendations
+      setSearchCriteria(searchParams);
+      
       // Construct query params string for navigation
       const queryParams = new URLSearchParams();
 
@@ -27,6 +98,12 @@ const HomePage = () => {
       if (searchParams.maxPrice)
         queryParams.append('maxPrice', searchParams.maxPrice);
 
+      // Add user location if available
+      if (userLocation?.latitude && userLocation?.longitude) {
+        queryParams.append('userLat', userLocation.latitude);
+        queryParams.append('userLon', userLocation.longitude);
+      }
+
       // Navigate to properties page with search params
       navigate({
         pathname: '/properties',
@@ -34,15 +111,11 @@ const HomePage = () => {
       });
     } catch (error) {
       console.error('Search error:', error);
-      // On error, still navigate with query params (fallback behavior)
+      // Fallback navigation
       const queryParams = new URLSearchParams();
-
-      // Handle search query (from search box)
       if (searchParams.search) {
         queryParams.append('q', searchParams.search);
       }
-
-      // Handle filter parameters
       if (searchParams.location)
         queryParams.append('location', searchParams.location);
       if (searchParams.type) queryParams.append('type', searchParams.type);
@@ -60,8 +133,16 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Location Permission Prompt */}
+      {showLocationPrompt && (
+        <LocationPrompt
+          onAllow={handleLocationAllow}
+          onDecline={handleLocationDecline}
+        />
+      )}
+
       {/* Hero Section */}
-      <Hero />
+      <Hero userLocation={userLocation} />
 
       {/* Search Filters - Positioned beautifully */}
       <div className="relative px-4 sm:px-6 lg:px-8">
@@ -69,6 +150,7 @@ const HomePage = () => {
           <SearchFilters
             onSearch={handleSearch}
             layout="horizontal"
+            userLocation={userLocation}
           />
         </div>
       </div>
@@ -76,13 +158,21 @@ const HomePage = () => {
       {/* Spacer */}
       <div className="h-16"></div>
 
+      {/* Location-based Recommendations */}
+      {locationDetected && userLocation && (
+        <LocationBasedRecommendations 
+          userLocation={userLocation}
+          searchCriteria={searchCriteria}
+        />
+      )}
+
       {/* Featured Properties */}
       <FeaturedProperties />
 
       {/* About Section */}
       <AboutSection />
 
-      {/* Testimonials - Now enabled */}
+      {/* Testimonials */}
       <TestimonialsSection />
 
       {/* Modern CTA Section */}
@@ -113,7 +203,7 @@ const HomePage = () => {
           <div className="inline-flex items-center px-3 py-1.5 bg-white/10 rounded-full backdrop-blur-sm border border-white/20 mb-6">
             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-2 animate-pulse"></div>
             <span className="text-white/90 text-sm font-medium">
-              Trusted by renters across Nepal
+              {userLocation?.city ? `Serving ${userLocation.city}` : 'Trusted by renters across Nepal'}
             </span>
           </div>
 
@@ -125,8 +215,10 @@ const HomePage = () => {
           </h2>
 
           <p className="text-lg text-white/80 max-w-xl mx-auto mb-8 leading-relaxed">
-            Find your perfect place to live quick, easy, and hassle-free. Start
-            your search with Nepal's trusted room and flat booking platform
+            Find your perfect place to live quick, easy, and hassle-free. 
+            {userLocation?.city && (
+              <span> Discover properties near you in {userLocation.city}.</span>
+            )}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">

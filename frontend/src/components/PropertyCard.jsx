@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEye, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
-import { addToWishlist, removeFromWishlist } from '../api/api';
+import { addToWishlist, removeFromWishlist, getWishlistState } from '../api/api';
+import toast from 'react-hot-toast';
 
 const PropertyCard = ({ property, onWishlistUpdate }) => {
   const {
@@ -15,23 +16,31 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
     bedrooms,
     bathrooms,
     area,
-    status,
-    views,
-    inWishlist = false
+    status = 'available',
+    views = { total: 0 },
   } = property;
 
-  const [isInWishlist, setIsInWishlist] = useState(inWishlist);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isWishlistUpdating, setIsWishlistUpdating] = useState(false);
   const { isLoggedIn, currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // Load initial wishlist state from localStorage
+  useEffect(() => {
+    if (currentUser && id) {
+      const wishlistState = getWishlistState(currentUser.id, id);
+      setIsInWishlist(wishlistState);
+    }
+  }, [currentUser, id]);
 
   const formatPrice = new Intl.NumberFormat('ne-NP', {
     style: 'currency',
     currency: 'NPR',
     maximumFractionDigits: 0
-  }).format(price);
+  }).format(price || 0);
 
   const getTypeColor = (type) => {
-    switch (type.toLowerCase()) {
+    switch (type) {
       case 'apartment':
         return 'bg-blue-100 text-blue-800';
       case 'house':
@@ -46,7 +55,7 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
   };
 
   const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
+    switch (status) {
       case 'for sale':
         return 'bg-green-100 text-green-800';
       case 'sold out':
@@ -59,23 +68,40 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
 
   const handleWishlistToggle = async () => {
     if (!isLoggedIn) {
-      navigate('/login', { state: { from: location.pathname } });
+      navigate('/login', { state: { from: window.location.pathname } });
       return;
     }
 
+    setIsWishlistUpdating(true);
     try {
-      const response = isInWishlist
-        ? await removeFromWishlist(currentUser.id, id)
-        : await addToWishlist(currentUser.id, id);
-
-      if (response.success) {
-        setIsInWishlist(!isInWishlist);
-        if (onWishlistUpdate) {
-          onWishlistUpdate(id, !isInWishlist);
+      if (isInWishlist) {
+        const response = await removeFromWishlist(currentUser.id, id);
+        if (response.success) {
+          setIsInWishlist(false);
+          toast.success('Removed from wishlist');
+          if (onWishlistUpdate) {
+            onWishlistUpdate(id, false);
+          }
+        } else {
+          toast.error(response.message || 'Failed to remove from wishlist');
+        }
+      } else {
+        const response = await addToWishlist(currentUser.id, id);
+        if (response.success) {
+          setIsInWishlist(true);
+          toast.success('Added to wishlist');
+          if (onWishlistUpdate) {
+            onWishlistUpdate(id, true);
+          }
+        } else {
+          toast.error(response.message || 'Failed to add to wishlist');
         }
       }
     } catch (error) {
       console.error('Error updating wishlist:', error);
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setIsWishlistUpdating(false);
     }
   };
 
@@ -96,30 +122,37 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
     navigate(`/property/${id}`);
   };
 
-  const isAvailable = !['sold out', 'not available'].includes(status.toLowerCase());
+  const isAvailable = !['sold out', 'not available'].includes(status?.toLowerCase() || 'available');
+  const propertyType = type?.toLowerCase() || 'property';
+  const propertyStatus = status?.toLowerCase() || 'available';
+  const viewCount = views?.total || 0;
 
   return (
     <div className="card group animate-fade-in">
       <div className="relative overflow-hidden">
         <img 
-          src={imageUrl} 
-          alt={title} 
+          src={imageUrl || '/placeholder-property.jpg'} 
+          alt={title || 'Property'} 
           className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
         />
         
-        <div className={`absolute top-4 left-4 ${getTypeColor(type)} px-2 py-1 rounded text-xs font-medium`}>
-          {type.charAt(0).toUpperCase() + type.slice(1)}
+        <div className={`absolute top-4 left-4 ${getTypeColor(propertyType)} px-2 py-1 rounded text-xs font-medium`}>
+          {propertyType.charAt(0).toUpperCase() + propertyType.slice(1)}
         </div>
 
-        <div className={`absolute top-4 right-4 ${getStatusColor(status)} px-2 py-1 rounded text-xs font-medium`}>
-          {status}
+        <div className={`absolute top-4 right-4 ${getStatusColor(propertyStatus)} px-2 py-1 rounded text-xs font-medium`}>
+          {propertyStatus.charAt(0).toUpperCase() + propertyStatus.slice(1)}
         </div>
 
         <button
           onClick={handleWishlistToggle}
+          disabled={isWishlistUpdating}
           className="absolute bottom-4 right-6 p-2 rounded-full bg-white shadow-md hover:bg-gray-100 transition-colors"
+          aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
-          {isInWishlist ? (
+          {isWishlistUpdating ? (
+            <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+          ) : isInWishlist ? (
             <FaHeart className="text-red-500" />
           ) : (
             <FaRegHeart className="text-gray-600" />
@@ -128,11 +161,11 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
       </div>
       
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-1">{title}</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-1">{title || 'Untitled Property'}</h3>
         
         <div className="flex items-center text-gray-600 mb-2">
           <FaMapMarkerAlt className="text-primary-500 mr-1" />
-          <p className="text-sm">{location}</p>
+          <p className="text-sm">{location || 'Location not specified'}</p>
         </div>
         
         <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
@@ -153,7 +186,7 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
         
         <div className="flex items-center text-sm text-gray-600 mb-3">
           <FaEye className="mr-1" />
-          <span>{views.total} views</span>
+          <span>{viewCount} views</span>
         </div>
         
         <div className="space-y-3">

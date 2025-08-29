@@ -68,13 +68,18 @@ const PropertiesPage = () => {
   }, []);
 
   // Helper function to normalize properties array
-  const normalizeProperties = useCallback(
-    (properties) => {
-      return properties.map(normalizeProperty);
-    },
-    [normalizeProperty]
-  );
-
+const normalizeProperties = useCallback(
+  (properties) => {
+    // Ensure properties is an array before mapping
+    if (!Array.isArray(properties)) {
+      console.warn('normalizeProperties received non-array:', properties);
+      return [];
+    }
+    
+    return properties.map(normalizeProperty);
+  },
+  [normalizeProperty]
+);
   // Initialize filters from URL params
   const initialFilters = {
     location: searchParams.get('location') || '',
@@ -83,6 +88,70 @@ const PropertiesPage = () => {
     maxPrice: searchParams.get('maxPrice') || '',
     q: searchParams.get('q') || '', // Add search query parameter
   };
+
+// In your handleSuperSearchResults function, update it like this:
+const handleSuperSearchResults = (results, query = '') => {
+  if (results === null) {
+    // When search is cleared, show all properties
+    setFilteredProperties(properties);
+    // Remove superSearch param from URL
+    const params = new URLSearchParams(searchParams);
+    params.delete('superSearch');
+    setSearchParams(params);
+  } else {
+    // Handle both old array format and new API response format
+    let propertiesArray = [];
+    
+    if (Array.isArray(results)) {
+      // Old format - direct array
+      propertiesArray = results;
+    } else if (results && typeof results === 'object' && results.properties) {
+      // New API format with metadata - extract properties array
+      propertiesArray = results.properties || [];
+    } else if (results && typeof results === 'object') {
+      // Fallback - try to extract properties from various possible structures
+      propertiesArray = results.data?.properties || results.properties || [];
+    }
+    
+    // Ensure we have an array
+    if (!Array.isArray(propertiesArray)) {
+      console.warn('Could not extract properties array from results:', results);
+      propertiesArray = [];
+    }
+    
+    const normalizedResults = normalizeProperties(propertiesArray);
+    setFilteredProperties(normalizedResults);
+    
+    // Add superSearch param to URL if query exists
+    if (query) {
+      const params = new URLSearchParams(searchParams);
+      params.set('superSearch', query);
+      setSearchParams(params);
+    }
+  }
+};
+
+// Also, add this helper to check for super search on mount
+useEffect(() => {
+  const superSearchQuery = searchParams.get('superSearch');
+  if (superSearchQuery) {
+    handleSuperSearchFromURL(superSearchQuery);
+  }
+}, [searchParams]);
+
+const handleSuperSearchFromURL = async (query) => {
+  setLoading(true);
+  try {
+    const results = await performSuperSearch(query);
+    const normalizedResults = normalizeProperties(results.properties || []);
+    setFilteredProperties(normalizedResults);
+  } catch (error) {
+    console.error('Super search from URL failed:', error);
+    setFilteredProperties([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const [filters, setFilters] = useState(initialFilters);
 
@@ -138,15 +207,28 @@ const PropertiesPage = () => {
         setTotalCount(total);
         setTotalPages(pages);
         setCurrentPage(page);
-        if (superSearchQuery) {
-          const results = await performSuperSearch(superSearchQuery);
-          const normalizedResults = normalizeProperties(results || []);
-          console.log('SuperSearch Results:', normalizedResults); // Debug log
-          setFilteredProperties(normalizedResults);
-        } else {
-          console.log('Setting filtered properties to:', propertiesData); // Debug log
-          setFilteredProperties(propertiesData);
-        }
+if (superSearchQuery) {
+  const results = await performSuperSearch(superSearchQuery);
+  
+  // Handle the response structure correctly
+  let propertiesArray = [];
+  if (results && typeof results === 'object') {
+    if (Array.isArray(results)) {
+      // Old format - direct array
+      propertiesArray = results;
+    } else if (results.properties && Array.isArray(results.properties)) {
+      // New API format - extract properties array
+      propertiesArray = results.properties;
+    }
+  }
+  
+  const normalizedResults = normalizeProperties(propertiesArray);
+  console.log('SuperSearch Results:', normalizedResults);
+  setFilteredProperties(normalizedResults);
+} else {
+  console.log('Setting filtered properties to:', propertiesData);
+  setFilteredProperties(propertiesData);
+}
 
         // Update search criteria for recommendations
         if (
@@ -198,36 +280,6 @@ const PropertiesPage = () => {
     setSearchParams(params);
   };
 
-  // Handle SuperSearch results
-  const handleSuperSearchResults = (results, query = '') => {
-    if (results === null) {
-      // When search is cleared, show all properties
-      setFilteredProperties(properties);
-      // Remove superSearch param from URL
-      const params = new URLSearchParams(searchParams);
-      params.delete('superSearch');
-      setSearchParams(params);
-    } else {
-      // When we get results (empty array means no matches)
-      const normalizedResults = normalizeProperties(results || []);
-      setFilteredProperties(normalizedResults);
-      // Add superSearch param to URL if query exists
-      if (query) {
-        const params = new URLSearchParams(searchParams);
-        params.set('superSearch', query);
-        setSearchParams(params);
-
-        // Store search results in session storage for navigation
-        sessionStorage.setItem(
-          'superSearchResults',
-          JSON.stringify({
-            query,
-            results: normalizedResults,
-          })
-        );
-      }
-    }
-  };
 
   // Sort properties
   const sortProperties = (option) => {

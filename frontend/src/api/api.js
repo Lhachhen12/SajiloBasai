@@ -574,55 +574,145 @@ export const processPayment = async (bookingId, paymentMethod) => {
 };
 
 // Wishlist API functions
-export const getWishlistByUserId = async (userId) => {
+// Add these wishlist functions to your api.js
+
+// In your api.js, update the wishlist functions:
+
+// Helper function to normalize IDs (convert to string for consistency)
+const normalizeId = (id) => String(id);
+
+// Update the localStorage helper functions
+const updateLocalStorageWishlist = (userId, propertyId, action) => {
   try {
-    const response = await fetch(`${API_URL}/api/wishlist`, {
-      headers: createHeaders(true),
-    });
-
-    const data = await handleApiResponse(response);
-    return data.wishlist || [];
-  } catch (error) {
-    console.error('Error fetching wishlist:', error);
-    // Fallback to mock data
-    const wishlistIds = WISHLIST.filter((item) => item.userId === userId).map(
-      (item) => item.propertyId
-    );
-
-    const wishlistProperties = PROPERTIES.filter((property) =>
-      wishlistIds.includes(property.id)
-    );
-
-    return wishlistProperties;
+    const storageKey = `wishlist_${userId}`;
+    const currentWishlist = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    
+    let updatedWishlist;
+    const normalizedId = normalizeId(propertyId);
+    
+    if (action === 'add') {
+      if (!currentWishlist.includes(normalizedId)) {
+        updatedWishlist = [...currentWishlist, normalizedId];
+        localStorage.setItem(storageKey, JSON.stringify(updatedWishlist));
+      }
+    } else {
+      updatedWishlist = currentWishlist.filter(id => id !== normalizedId);
+      localStorage.setItem(storageKey, JSON.stringify(updatedWishlist));
+    }
+  } catch (e) {
+    console.error('Error updating localStorage wishlist:', e);
+    throw e;
   }
 };
 
+// Get initial wishlist state for a property
+export const getWishlistState = (userId, propertyId) => {
+  try {
+    const storageKey = `wishlist_${userId}`;
+    const currentWishlist = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    const normalizedId = normalizeId(propertyId);
+    return currentWishlist.includes(normalizedId);
+  } catch (e) {
+    console.error('Error getting wishlist state:', e);
+    return false;
+  }
+};
+
+// Update the API calls to handle ID conversion
 export const addToWishlist = async (userId, propertyId) => {
   try {
+    // Try API first
     const response = await fetch(`${API_URL}/api/wishlist`, {
       method: 'POST',
       headers: createHeaders(true),
-      body: JSON.stringify({ propertyId }),
+      body: JSON.stringify({ propertyId: normalizeId(propertyId) }),
     });
 
-    const data = await handleApiResponse(response);
-    return { success: true, message: data.message };
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Update localStorage as backup
+      updateLocalStorageWishlist(userId, propertyId, 'add');
+      
+      return { success: true, message: data.message || 'Added to wishlist' };
+    }
+    
+    throw new Error('API unavailable');
   } catch (error) {
-    return { success: false, message: error.message };
+    console.warn('Using localStorage fallback for addToWishlist');
+    
+    // Fallback to localStorage
+    try {
+      updateLocalStorageWishlist(userId, propertyId, 'add');
+      return { success: true, message: 'Added to wishlist' };
+    } catch (e) {
+      console.error('Error with localStorage fallback:', e);
+      return { success: false, message: 'Failed to add to wishlist' };
+    }
   }
 };
 
 export const removeFromWishlist = async (userId, propertyId) => {
   try {
-    const response = await fetch(`${API_URL}/api/wishlist/${propertyId}`, {
+    // Try API first
+    const response = await fetch(`${API_URL}/api/wishlist/${normalizeId(propertyId)}`, {
       method: 'DELETE',
       headers: createHeaders(true),
     });
 
-    const data = await handleApiResponse(response);
-    return { success: true, message: data.message };
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Update localStorage as backup
+      updateLocalStorageWishlist(userId, propertyId, 'remove');
+      
+      return { success: true, message: data.message || 'Removed from wishlist' };
+    }
+    
+    throw new Error('API unavailable');
   } catch (error) {
-    return { success: false, message: error.message };
+    console.warn('Using localStorage fallback for removeFromWishlist');
+    
+    // Fallback to localStorage
+    try {
+      updateLocalStorageWishlist(userId, propertyId, 'remove');
+      return { success: true, message: 'Removed from wishlist' };
+    } catch (e) {
+      console.error('Error with localStorage fallback:', e);
+      return { success: false, message: 'Failed to remove from wishlist' };
+    }
+  }
+};
+export const getWishlistByUserId = async (userId) => {
+  // Return empty array if userId is not provided
+  if (!userId) {
+    return [];
+  }
+
+  try {
+    // Try API first
+    const response = await fetch(`${API_URL}/api/wishlist/user/${userId}`, {
+      headers: createHeaders(true),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.wishlistItems || data.data || [];
+    }
+    
+    throw new Error('API unavailable');
+  } catch (error) {
+    console.warn('Using localStorage fallback for getWishlistByUserId');
+    
+    // Fallback to localStorage
+    try {
+      const storageKey = `wishlist_${userId}`;
+      const wishlist = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      return wishlist;
+    } catch (e) {
+      console.error('Error with localStorage fallback:', e);
+      return [];
+    }
   }
 };
 
@@ -927,5 +1017,85 @@ export const searchProperties = async (searchParams) => {
     console.error('Error searching properties:', error);
     // Fallback to regular getAllProperties if search fails
     return getAllProperties(searchParams);
+  }
+};
+
+// Add these functions to your existing src/api/api.js file
+
+// Location-based API functions
+export const getNearbyProperties = async (locationData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/properties/nearby`, {
+      method: 'POST',
+      headers: createHeaders(false),
+      body: JSON.stringify(locationData)
+    });
+
+    const data = await handleApiResponse(response);
+    return {
+      success: true,
+      properties: data.data.properties || [],
+      userLocation: data.data.userLocation,
+      searchRadius: data.data.searchRadius,
+      pagination: data.data.pagination
+    };
+  } catch (error) {
+    console.error('Error fetching nearby properties:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const getLocationBasedRecommendations = async (requestData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/properties/recommendations`, {
+      method: 'POST',
+      headers: createHeaders(false),
+      body: JSON.stringify(requestData)
+    });
+
+    const data = await handleApiResponse(response);
+    return {
+      success: true,
+      recommendations: data.data.recommendations || [],
+      basedOn: data.data.basedOn,
+      userLocation: data.data.userLocation
+    };
+  } catch (error) {
+    console.error('Error fetching recommendations:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const detectUserLocationAPI = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/properties/detect-location`, {
+      headers: createHeaders(false)
+    });
+
+    const data = await handleApiResponse(response);
+    return data.data;
+  } catch (error) {
+    console.error('Error detecting location:', error);
+    throw error;
+  }
+};
+
+export const geocodeAddress = async (address, city = '') => {
+  try {
+    const response = await fetch(`${API_URL}/api/properties/geocode`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify({ address, city })
+    });
+
+    const data = await handleApiResponse(response);
+    return {
+      success: true,
+      coordinates: data.data.coordinates,
+      formattedAddress: data.data.formattedAddress
+    };
+  } catch (error) {
+    console.error('Error geocoding address:', error);
+    return { success: false, message: error.message };
   }
 };

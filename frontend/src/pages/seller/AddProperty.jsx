@@ -4,6 +4,7 @@ import {
   createProperty,
   uploadSingleImage,
   uploadMultipleImages,
+  geocodeAddress,
 } from '../../api/api';
 import { useDropzone } from 'react-dropzone';
 import {
@@ -15,6 +16,7 @@ import {
   FiMaximize,
   FiX,
   FiUpload,
+  FiMap,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -22,6 +24,8 @@ const AddProperty = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [showCoordinates, setShowCoordinates] = useState(false);
 
   const [propertyData, setPropertyData] = useState({
     title: '',
@@ -52,6 +56,12 @@ const AddProperty = () => {
       zipCode: '',
     },
     availableFrom: new Date().toISOString().split('T')[0], // Date input format
+  });
+
+  const [coordinates, setCoordinates] = useState({
+    latitude: '',
+    longitude: '',
+    accuracy: null
   });
 
   const propertyTypes = [
@@ -178,6 +188,35 @@ const AddProperty = () => {
     }));
   };
 
+  // Add this function to handle geocoding
+  const handleGeocode = async () => {
+    if (!propertyData.location) {
+      toast.error('Please enter a location first');
+      return;
+    }
+
+    setGeocoding(true);
+    try {
+      const result = await geocodeAddress(propertyData.location, propertyData.address.city);
+      
+      if (result.success) {
+        setCoordinates({
+          latitude: result.coordinates.latitude,
+          longitude: result.coordinates.longitude,
+          accuracy: result.coordinates.accuracy
+        });
+        toast.success('Location coordinates found!');
+      } else {
+        toast.error(result.message || 'Could not find coordinates for this location');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      toast.error('Failed to geocode address');
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   // Dropzone configuration for image upload
   const onDrop = async (acceptedFiles) => {
     setUploadingImages(true);
@@ -268,17 +307,13 @@ const AddProperty = () => {
     setLoading(true);
 
     try {
-      // Format data to match the Property model
+      // Format data to match the Property model - INCLUDING COORDINATES
       const formattedPropertyData = {
         title: propertyData.title,
         description: propertyData.description,
-        type: propertyData.type.toLowerCase(), // Convert to lowercase
-        roomType:
-          propertyData.type === 'room' ? propertyData.roomType : undefined,
-        flatType:
-          propertyData.type === 'flat' || propertyData.type === 'apartment'
-            ? propertyData.flatType
-            : undefined,
+        type: propertyData.type.toLowerCase(),
+        roomType: propertyData.type === 'room' ? propertyData.roomType : undefined,
+        flatType: (propertyData.type === 'flat' || propertyData.type === 'apartment') ? propertyData.flatType : undefined,
         price: Number(propertyData.price),
         location: propertyData.location,
         area: Number(propertyData.area),
@@ -290,7 +325,16 @@ const AddProperty = () => {
         rules: propertyData.rules,
         address: propertyData.address,
         availableFrom: new Date(propertyData.availableFrom),
-        status: 'pending', // Set to pending for admin approval
+        status: 'pending',
+        // ADD COORDINATES IF AVAILABLE
+        ...(coordinates.latitude && coordinates.longitude && {
+          coordinates: {
+            latitude: Number(coordinates.latitude),
+            longitude: Number(coordinates.longitude),
+            accuracy: coordinates.accuracy,
+            lastUpdated: new Date()
+          }
+        })
       };
 
       const response = await createProperty(formattedPropertyData);
@@ -615,6 +659,86 @@ const AddProperty = () => {
                   placeholder="Zip/Postal code"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+              </div>
+
+              {/* Location Coordinates Section */}
+              <div className="md:col-span-2">
+                <div className="border-t pt-6 mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-medium text-gray-900">
+                      Location Coordinates (Optional)
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowCoordinates(!showCoordinates)}
+                      className="text-blue-500 hover:text-blue-600 text-sm font-medium"
+                    >
+                      {showCoordinates ? 'Hide' : 'Show'} Coordinates
+                    </button>
+                  </div>
+                  
+                  {showCoordinates && (
+                    <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">
+                        Adding precise coordinates helps users find your property more easily and improves search results.
+                      </p>
+                      
+                      <div className="flex items-center space-x-4">
+                        <button
+                          type="button"
+                          onClick={handleGeocode}
+                          disabled={geocoding || !propertyData.location}
+                          className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          <FiMap className="h-4 w-4" />
+                          <span>{geocoding ? 'Finding Location...' : 'Auto-Detect Coordinates'}</span>
+                        </button>
+                        
+                        {coordinates.latitude && coordinates.longitude && (
+                          <span className="text-sm text-green-600 font-medium">
+                            ✓ Coordinates found
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Latitude
+                          </label>
+                          <input
+                            type="number"
+                            value={coordinates.latitude}
+                            onChange={(e) => setCoordinates(prev => ({...prev, latitude: e.target.value}))}
+                            placeholder="27.7172"
+                            step="any"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Longitude
+                          </label>
+                          <input
+                            type="number"
+                            value={coordinates.longitude}
+                            onChange={(e) => setCoordinates(prev => ({...prev, longitude: e.target.value}))}
+                            placeholder="85.3240"
+                            step="any"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          />
+                        </div>
+                      </div>
+                      
+                      {coordinates.accuracy && (
+                        <p className="text-xs text-gray-500">
+                          Accuracy: {(coordinates.accuracy * 100).toFixed(1)}%
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

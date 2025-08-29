@@ -40,6 +40,29 @@ const propertySchema = new mongoose.Schema({
     required: [true, 'Please enter property location'],
     maxLength: [50, 'Location cannot exceed 50 characters'],
   },
+  // NEW: Geolocation coordinates
+  coordinates: {
+    latitude: {
+      type: Number,
+      min: [-90, 'Latitude must be between -90 and 90'],
+      max: [90, 'Latitude must be between -90 and 90'],
+      default: null
+    },
+    longitude: {
+      type: Number,
+      min: [-180, 'Longitude must be between -180 and 180'],
+      max: [180, 'Longitude must be between -180 and 180'],
+      default: null
+    },
+    accuracy: {
+      type: Number,
+      default: null // Accuracy in meters
+    },
+    lastUpdated: {
+      type: Date,
+      default: Date.now
+    }
+  },
   area: {
     type: Number,
     required: [true, 'Please enter property area'],
@@ -121,5 +144,24 @@ propertySchema.pre('save', function (next) {
 propertySchema.index({ title: 'text', description: 'text', location: 'text' });
 propertySchema.index({ location: 1, type: 1, price: 1 });
 propertySchema.index({ sellerId: 1, status: 1 });
+
+// NEW: Geospatial index for location-based queries
+propertySchema.index({ 
+  'coordinates.latitude': 1, 
+  'coordinates.longitude': 1 
+});
+
+// NEW: Static method to calculate distance between two points
+propertySchema.statics.calculateDistance = function(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in kilometers
+};
 
 export default mongoose.model('Property', propertySchema);

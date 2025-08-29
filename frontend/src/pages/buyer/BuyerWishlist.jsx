@@ -1,22 +1,50 @@
 import { useState, useEffect } from 'react';
-import { getWishlistByUserId, removeFromWishlist } from '../../api/api';
+import { getWishlistByUserId, removeFromWishlist, getAllProperties } from '../../api/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaTrash, FaExternalLinkAlt } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 
 const BuyerWishlist = () => {
   const { currentUser } = useAuth();
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Helper function to normalize IDs for comparison
+  const normalizeId = (id) => String(id);
+
   // Fetch wishlist properties
   useEffect(() => {
     const loadWishlist = async () => {
+      if (!currentUser || !currentUser.id) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const data = await getWishlistByUserId(currentUser?.id || 1);
-        setWishlist(data);
+        // Get wishlist IDs from API or localStorage
+        const wishlistIds = await getWishlistByUserId(currentUser.id);
+        
+        if (wishlistIds.length === 0) {
+          setWishlist([]);
+          setLoading(false);
+          return;
+        }
+
+        // Get all properties
+        const allPropertiesResponse = await getAllProperties();
+        const allProperties = allPropertiesResponse.properties || [];
+        
+        // Filter properties to only include those in the wishlist
+        // Use normalized IDs for comparison
+        const wishlistProperties = allProperties.filter(property => 
+          wishlistIds.includes(normalizeId(property._id || property.id))
+        );
+        
+        setWishlist(wishlistProperties);
       } catch (error) {
         console.error('Error loading wishlist:', error);
+        toast.error('Failed to load wishlist');
       } finally {
         setLoading(false);
       }
@@ -27,14 +55,25 @@ const BuyerWishlist = () => {
 
   // Handle remove from wishlist
   const handleRemove = async (propertyId) => {
+    if (!currentUser || !currentUser.id) {
+      toast.error('You need to be logged in to modify your wishlist');
+      return;
+    }
+
     try {
-      const response = await removeFromWishlist(currentUser?.id || 1, propertyId);
+      const response = await removeFromWishlist(currentUser.id, propertyId);
       if (response.success) {
         // Update the local state by filtering out the removed property
-        setWishlist(wishlist.filter(property => property.id !== propertyId));
+        setWishlist(wishlist.filter(property => 
+          (property._id || property.id) !== propertyId
+        ));
+        toast.success('Removed from wishlist');
+      } else {
+        toast.error(response.message || 'Failed to remove from wishlist');
       }
     } catch (error) {
       console.error('Error removing from wishlist:', error);
+      toast.error('An error occurred. Please try again.');
     }
   };
 
@@ -45,6 +84,11 @@ const BuyerWishlist = () => {
       currency: 'NPR',
       maximumFractionDigits: 0
     }).format(price);
+  };
+
+  // Get property ID (handle both MongoDB _id and mock id)
+  const getPropertyId = (property) => {
+    return property._id || property.id;
   };
 
   return (
@@ -75,57 +119,63 @@ const BuyerWishlist = () => {
         </div>
       ) : wishlist.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {wishlist.map((property) => (
-            <div key={property.id} className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
-              <div className="relative h-48">
-                <img 
-                  src={property.imageUrl} 
-                  alt={property.title} 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-0 left-0 bg-primary-600 text-white px-3 py-1 rounded-br-lg">
-                  <span className="capitalize">{property.type}</span>
+          {wishlist.map((property) => {
+            const propertyId = getPropertyId(property);
+            return (
+              <div key={propertyId} className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
+                <div className="relative h-48">
+                  <img 
+                    src={property.images && property.images.length > 0 
+                      ? property.images[0] 
+                      : property.imageUrl || '/default-property.jpg'
+                    } 
+                    alt={property.title} 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-0 left-0 bg-primary-600 text-white px-3 py-1 rounded-br-lg">
+                    <span className="capitalize">{property.type}</span>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="p-4 flex-grow">
-                <h3 className="text-lg font-semibold text-gray-800 mb-1">{property.title}</h3>
-                <p className="text-gray-600 mb-3 flex items-center">
-                  <span>{property.location}</span>
-                </p>
-                <div className="flex justify-between items-center">
-                  <p className="text-xl font-bold text-primary-600">
-                    {formatPrice(property.price)} <span className="text-sm font-normal text-gray-600">/ per month</span>
+                
+                <div className="p-4 flex-grow">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1">{property.title}</h3>
+                  <p className="text-gray-600 mb-3 flex items-center">
+                    <span>{property.location}</span>
                   </p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-xl font-bold text-primary-600">
+                      {formatPrice(property.price)} <span className="text-sm font-normal text-gray-600">/ per month</span>
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-                <Link 
-                  to={`/property/${property.id}`} 
-                  className="text-primary-600 hover:text-primary-800 font-medium flex items-center"
-                >
-                  <span>View Property</span>
-                  <FaExternalLinkAlt className="ml-2 text-sm" />
-                </Link>
-                <div className="flex space-x-2">
-                  <Link
-                    to={`/book/${property.id}`}
-                    className="btn-primary"
+                
+                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+                  <Link 
+                    to={`/property/${propertyId}`} 
+                    className="text-primary-600 hover:text-primary-800 font-medium flex items-center"
                   >
-                    Book Now
+                    <span>View Property</span>
+                    <FaExternalLinkAlt className="ml-2 text-sm" />
                   </Link>
-                  <button
-                    onClick={() => handleRemove(property.id)}
-                    className="p-2 text-gray-500 hover:text-red-500 transition-colors"
-                    aria-label="Remove from wishlist"
-                  >
-                    <FaTrash />
-                  </button>
+                  <div className="flex space-x-2">
+                    <Link
+                      to={`/book/${propertyId}`}
+                      className="btn-primary"
+                    >
+                      Book Now
+                    </Link>
+                    <button
+                      onClick={() => handleRemove(propertyId)}
+                      className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                      aria-label="Remove from wishlist"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm p-8 text-center">
