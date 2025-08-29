@@ -397,7 +397,7 @@ const PropertyDetailPage = () => {
       {showChatModal && (
         <ChatModal 
           propertyId={id} 
-          sellerId={seller.id} 
+          sellerId={property.sellerId._id} 
           onClose={() => setShowChatModal(false)} 
         />
       )}

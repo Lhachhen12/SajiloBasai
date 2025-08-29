@@ -20,6 +20,9 @@ import contactRoutes from './routes/contactRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import imageRoutes from './routes/imageRoutes.js';
 import esewaRoute from "./routes/esewaRoute.js"
+import chatRoutes from './routes/chatRoute.js';
+import adminChatRoutes from './routes/adminChatRoute.js';
+import sellerChatRoutes from './routes/sellerChatRoute.js';
 
 // Import middlewares
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
@@ -47,16 +50,16 @@ app.use(
 );
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again later.',
-  },
-});
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // limit each IP to 100 requests per windowMs
+//   message: {
+//     success: false,
+//     message: 'Too many requests from this IP, please try again later.',
+//   },
+// });
 
-app.use('/api/', limiter);
+// app.use('/api/', limiter);
 
 // Compression middleware
 app.use(compression());
@@ -90,11 +93,14 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/cms', cmsRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin/chat', adminChatRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/payments', esewaRoute);
+app.use('/api/chat', chatRoutes);
+app.use('/api/seller/chat', sellerChatRoutes);
 
 // Error handling middlewares
 app.use(notFound);
