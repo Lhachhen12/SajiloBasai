@@ -1130,49 +1130,72 @@ export const adminApi = {
   },
 
   // Blog Management
-  getBlogPosts: async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/cms/blog`, {
-        headers: createHeaders(true),
-      });
 
-      const data = await handleApiResponse(response);
-      return data.posts || [];
-    } catch (error) {
-      console.error('Error fetching blog posts:', error);
-      return [];
-    }
-  },
+// Blog Management
+getBlogPosts: async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog`, {
+      headers: createHeaders(true),
+    });
+    return await handleApiResponse(response);
+  } catch (error) {
+    console.error('Error fetching blog posts:', error);
+    return { data: [] };
+  }
+},
 
-  createBlogPost: async (postData) => {
-    try {
-      const response = await fetch(`${API_URL}/api/cms/blog`, {
-        method: 'POST',
-        headers: createHeaders(true),
-        body: JSON.stringify(postData),
-      });
+getBlogPost: async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog/${id}`, {
+      headers: createHeaders(true),
+    });
+    return await handleApiResponse(response);
+  } catch (error) {
+    console.error('Error fetching blog post:', error);
+    return { data: null };
+  }
+},
 
-      const data = await handleApiResponse(response);
-      return { success: true, post: data.post };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
-  },
+createBlogPost: async (postData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify(postData),
+    });
+    return await handleApiResponse(response);
+  } catch (error) {
+    console.error('Error creating blog post:', error);
+    return { success: false, message: error.message };
+  }
+},
 
-  updateBlogPost: async (postId, postData) => {
-    try {
-      const response = await fetch(`${API_URL}/api/cms/blog/${postId}`, {
-        method: 'PUT',
-        headers: createHeaders(true),
-        body: JSON.stringify(postData),
-      });
+updateBlogPost: async (id, postData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog/${id}`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(postData),
+    });
+    return await handleApiResponse(response);
+  } catch (error) {
+    console.error('Error updating blog post:', error);
+    return { success: false, message: error.message };
+  }
+},
 
-      const data = await handleApiResponse(response);
-      return { success: true, post: data.post };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
-  },
+deleteBlogPost: async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/api/cms/blog/${id}`, {
+      method: 'DELETE',
+      headers: createHeaders(true),
+    });
+    return await handleApiResponse(response);
+  } catch (error) {
+    console.error('Error deleting blog post:', error);
+    return { success: false, message: error.message };
+  }
+},
 
   // Analytics
   getAnalytics: async (timeRange = 'week') => {

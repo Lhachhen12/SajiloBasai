@@ -1,3 +1,4 @@
+// backend/routes/chatRoute.js
 import express from 'express';
 import { protect } from '../middlewares/auth.js';
 import { 
@@ -18,7 +19,7 @@ router.use(protect);
 // Get or create chat room
 router.post('/room', getOrCreateChatRoom);
 
-// Get messages for a chat room (fixed route path)
+// Get messages for a chat room
 router.get('/rooms/:roomId/messages', getMessages);
 
 // Send a message
@@ -33,7 +34,7 @@ router.get('/property-chats', getPropertyChats);
 // Get unread message count
 router.get('/unread-count', getUnreadCount);
 
-// Mark messages as read (changed to POST to match your API service)
+// Mark messages as read
 router.post('/messages/read', markMessagesAsRead);
 
 export default router;

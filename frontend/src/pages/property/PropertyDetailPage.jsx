@@ -1,9 +1,9 @@
-// src/pages/PropertyDetailPage.jsx
+// src/pages/property/PropertyDetailPage.jsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPropertyById, addToWishlist } from '../../api/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaHeart, FaRegHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEye, FaUserCheck, FaUserSecret, FaEnvelope, FaPhone, FaUser } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEye, FaUserCheck, FaUserSecret, FaEnvelope, FaPhone, FaUser, FaStore } from 'react-icons/fa';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
 import ChatModal from '../../components/ChatModal';
@@ -24,14 +24,7 @@ const PropertyDetailPage = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
 
-  const isAvailable = !['sold out', 'not available'].includes(property?.status.toLowerCase());
-  // Mock seller data (in a real app, this would come from the API)
-  const seller = {
-    id: 'seller123',
-    name: 'Jane Smith',
-    phone: '+977-1-234567',
-    email: 'jane@example.com'
-  };
+  const isAvailable = property && !['sold out', 'not available'].includes(property?.status?.toLowerCase());
 
   // Mock images array
   const images = [
@@ -46,11 +39,15 @@ const PropertyDetailPage = () => {
       setLoading(true);
       try {
         const response = await getPropertyById(id);
-        if (response.success) {
-          setProperty(response.property);
+        console.log('Property response:', response); // Debug log to see the structure
+        
+        if (response.success || response.data) {
+          // Handle different response structures
+          const propertyData = response.property || response.data || response;
+          setProperty(propertyData);
           setInWishlist(false);
         } else {
-          setError(response.message);
+          setError(response.message || 'Property not found');
         }
       } catch (error) {
         console.error('Error loading property:', error);
@@ -70,7 +67,7 @@ const PropertyDetailPage = () => {
     }
 
     try {
-      const response = await addToWishlist(currentUser.id, property.id);
+      const response = await addToWishlist(currentUser.id, property._id || property.id);
       if (response.success) {
         setInWishlist(!inWishlist);
       }
@@ -151,6 +148,17 @@ const PropertyDetailPage = () => {
     );
   }
 
+  // Get seller info from property data - Handle different possible structures
+  const seller = property.sellerId || property.seller || property.owner || {
+    _id: 'unknown',
+    name: 'Property Owner',
+    email: 'owner@example.com',
+    phone: '+977-1-234567'
+  };
+
+  // Debug log to see seller data
+  console.log('Seller data:', seller);
+
   return (
     <div className="pt-20 pb-12 bg-gray-50 min-h-screen">
       <div className="container-custom">
@@ -165,7 +173,8 @@ const PropertyDetailPage = () => {
                 pagination={{ clickable: true }}
                 className="h-96"
               >
-                {images.map((image, index) => (
+                {/* Use property images if available, otherwise use mock images */}
+                {(property.images && property.images.length > 0 ? property.images : images).map((image, index) => (
                   <SwiperSlide key={index}>
                     <img
                       src={image}
@@ -200,7 +209,7 @@ const PropertyDetailPage = () => {
                     <FaBed className="text-xl text-primary-500 mr-2" />
                     <h3 className="text-lg font-semibold text-gray-800">Bedrooms</h3>
                   </div>
-                  <p className="text-2xl font-bold text-gray-700">{property.bedrooms}</p>
+                  <p className="text-2xl font-bold text-gray-700">{property.bedrooms || 'N/A'}</p>
                 </div>
 
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -208,39 +217,36 @@ const PropertyDetailPage = () => {
                     <FaBath className="text-xl text-primary-500 mr-2" />
                     <h3 className="text-lg font-semibold text-gray-800">Bathrooms</h3>
                   </div>
-                  <p className="text-2xl font-bold text-gray-700">{property.bathrooms}</p>
+                  <p className="text-2xl font-bold text-gray-700">{property.bathrooms || 'N/A'}</p>
                 </div>
 
-                {/* <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center mb-2">
                     <FaRulerCombined className="text-xl text-primary-500 mr-2" />
                     <h3 className="text-lg font-semibold text-gray-800">Area</h3>
                   </div>
-                  <p className="text-2xl font-bold text-gray-700">{property.area} sqft</p>
-                  <p className="text-sm text-gray-600">
-                    ({Math.round(Math.sqrt(property.area))} x {Math.round(Math.sqrt(property.area))} ft)
-                  </p>
-                </div> */}
+                  <p className="text-2xl font-bold text-gray-700">{property.area || 'N/A'} sqft</p>
+                </div>
               </div>
 
               {/* Book Now button */}
-            <div className="flex justify-end mb-6">
-              {isAvailable ? (
-                <button
-                  onClick={handleBookNow}
-                  className="btn-primary flex items-center justify-center bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-lg hover:shadow-teal-500/30 transition-all duration-300 py-3 px-6 rounded-lg"
-                >
-                  Book Now
-                </button>
-              ) : (
-                <button
-                  disabled
-                  className="btn-primary flex items-center justify-center bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg cursor-not-allowed py-3 px-6 rounded-lg"
-                >
-                  Not Available
-                </button>
-              )}
-            </div>
+              <div className="flex justify-end mb-6">
+                {isAvailable ? (
+                  <button
+                    onClick={handleBookNow}
+                    className="btn-primary flex items-center justify-center bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-lg hover:shadow-teal-500/30 transition-all duration-300 py-3 px-6 rounded-lg"
+                  >
+                    Book Now
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="btn-primary flex items-center justify-center bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg cursor-not-allowed py-3 px-6 rounded-lg"
+                  >
+                    Not Available
+                  </button>
+                )}
+              </div>
 
               {/* Description */}
               <div className="mb-8">
@@ -252,22 +258,35 @@ const PropertyDetailPage = () => {
               <div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Features</h3>
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <li className="flex items-center text-gray-600">
-                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
-                    Free Electricity
-                  </li>
-                  <li className="flex items-center text-gray-600">
-                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
-                    Parking Available
-                  </li>
-                  <li className="flex items-center text-gray-600">
-                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
-                    Free Wi-Fi
-                  </li>
-                  <li className="flex items-center text-gray-600">
-                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
-                    24/7 Security
-                  </li>
+                  {property.features ? (
+                    Object.entries(property.features).map(([key, value]) => 
+                      value && (
+                        <li key={key} className="flex items-center text-gray-600">
+                          <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
+                          {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                        </li>
+                      )
+                    )
+                  ) : (
+                    <>
+                      <li className="flex items-center text-gray-600">
+                        <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
+                        Free Electricity
+                      </li>
+                      <li className="flex items-center text-gray-600">
+                        <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
+                        Parking Available
+                      </li>
+                      <li className="flex items-center text-gray-600">
+                        <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
+                        Free Wi-Fi
+                      </li>
+                      <li className="flex items-center text-gray-600">
+                        <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
+                        24/7 Security
+                      </li>
+                    </>
+                  )}
                 </ul>
               </div>
             </div>
@@ -280,23 +299,7 @@ const PropertyDetailPage = () => {
                   <FaEye className="text-2xl text-blue-500 mr-3" />
                   <div>
                     <h4 className="text-sm text-gray-600">Total Views</h4>
-                    <p className="text-xl font-bold text-gray-800">{property.views.total}</p>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg flex items-center">
-                  <FaUserCheck className="text-2xl text-green-500 mr-3" />
-                  <div>
-                    <h4 className="text-sm text-gray-600">Logged In Views</h4>
-                    <p className="text-xl font-bold text-gray-800">{property.views.loggedIn}</p>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg flex items-center">
-                  <FaUserSecret className="text-2xl text-purple-500 mr-3" />
-                  <div>
-                    <h4 className="text-sm text-gray-600">Anonymous Views</h4>
-                    <p className="text-xl font-bold text-gray-800">{property.views.anonymous}</p>
+                    <p className="text-xl font-bold text-gray-800">{property.views?.total || 0}</p>
                   </div>
                 </div>
               </div>
@@ -309,22 +312,41 @@ const PropertyDetailPage = () => {
               {/* Seller Profile */}
               <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                 <div className="flex items-center mb-6">
-                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mr-4">
-                    <FaUser className="text-2xl text-gray-400" />
+                  <div className="relative">
+                    {seller.profile?.avatar || seller.avatar ? (
+                      <img
+                        src={seller.profile?.avatar || seller.avatar}
+                        alt={seller.name}
+                        className="w-16 h-16 rounded-full mr-4"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center mr-4">
+                        <FaStore className="text-2xl text-white" />
+                      </div>
+                    )}
+                    <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
+                      <FaStore className="text-xs text-white" />
+                    </div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{seller.name}</h3>
-                    <p className="text-gray-600">Property Owner</p>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {seller.name || seller.username || 'Property Owner'}
+                    </h3>
+                    <div className="flex items-center">
+                      <span className="text-sm bg-green-100 text-green-600 px-2 py-1 rounded-full">
+                        Property Owner
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center text-gray-600">
-                    <FaPhone className="mr-3" />
-                    <span>{seller.phone}</span>
+                    <FaPhone className="mr-3 text-green-500" />
+                    <span>{seller.phone || seller.phoneNumber || 'Contact via chat'}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
-                    <FaEnvelope className="mr-3" />
+                    <FaEnvelope className="mr-3 text-green-500" />
                     <span>{seller.email}</span>
                   </div>
                 </div>
@@ -337,7 +359,7 @@ const PropertyDetailPage = () => {
                   className="w-full btn-primary flex items-center justify-center bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white shadow-lg hover:shadow-teal-500/30 transition-all duration-300 py-3 px-4 rounded-lg"
                 >
                   <FaEnvelope className="mr-2" />
-                  Chat with Seller
+                  Chat with Owner
                 </button>
 
                 <button
@@ -361,8 +383,9 @@ const PropertyDetailPage = () => {
           </div>
         </div>
       </div>
-       {/* Recommendation Section */}
-    <RecommendationSection propertyId={id} />
+
+      {/* Recommendation Section */}
+      <RecommendationSection propertyId={id} />
 
       {/* Login Required Modal */}
       {showLoginModal && (
@@ -394,14 +417,15 @@ const PropertyDetailPage = () => {
       )}
 
       {/* Chat Modal */}
-      {showChatModal && (
+      {showChatModal && property && seller && seller._id && (
         <ChatModal 
-          propertyId={id} 
-          sellerId={property.sellerId._id} 
+          propertyId={property._id || property.id} 
+          sellerId={seller._id} 
+          sellerInfo={seller}
+          propertyTitle={property.title}
           onClose={() => setShowChatModal(false)} 
         />
       )}
-     
     </div>
   );
 };

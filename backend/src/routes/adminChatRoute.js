@@ -1,7 +1,13 @@
+// backend/routes/adminChatRoute.js
 import express from 'express';
 import { protect } from '../middlewares/auth.js';
-import { getAdminChatMessages, getAdminChatRooms, getOrCreateAdminSellerChat, getSellersForAdmin, sendAdminMessage } from '../controllers/adminChatController.js';
-
+import { 
+  getAdminChatRooms, 
+  getOrCreateAdminSellerChat, 
+  getAdminChatMessages, 
+  sendAdminMessage, 
+  getSellersForAdmin 
+} from '../controllers/adminChatController.js';
 
 const router = express.Router();
 

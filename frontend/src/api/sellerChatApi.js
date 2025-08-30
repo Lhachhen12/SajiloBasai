@@ -1,3 +1,4 @@
+// frontend/src/api/sellerChatApi.js
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api/seller/chat';
@@ -21,13 +22,13 @@ api.interceptors.request.use(
   }
 );
 
-// Get seller chat rooms
+// Get seller's chat rooms
 export const getSellerChatRooms = async () => {
   const response = await api.get('/rooms');
   return response.data;
 };
 
-// Get seller property chats
+// Get seller's property chats
 export const getSellerPropertyChats = async () => {
   const response = await api.get('/property-chats');
   return response.data;
@@ -39,14 +40,20 @@ export const getSellerChatMessages = async (roomId) => {
   return response.data;
 };
 
-// Send message as seller
+// Send seller message
 export const sendSellerMessage = async (messageData) => {
   const response = await api.post('/message', messageData);
   return response.data;
 };
 
-// Mark messages as read for seller
+// Mark seller messages as read
 export const markSellerMessagesAsRead = async (roomId) => {
   const response = await api.put('/messages/read', { roomId });
+  return response.data;
+};
+
+// Get seller's unread message count
+export const getSellerUnreadCount = async () => {
+  const response = await api.get('/unread-count');
   return response.data;
 };

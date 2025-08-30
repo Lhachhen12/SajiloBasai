@@ -1,5 +1,6 @@
+// src/pages/buyer/BuyerSidebar.jsx
 import { NavLink } from 'react-router-dom';
-import { FaHome, FaHeart, FaEnvelope, FaUser, FaTimes, FaBars } from 'react-icons/fa';
+import { FaHome, FaHeart, FaEnvelope, FaUser, FaTimes, FaBars, FaComments } from 'react-icons/fa';
 import { useState } from 'react';
 
 const BuyerSidebar = () => {
@@ -13,6 +14,7 @@ const BuyerSidebar = () => {
     { to: '/buyer/dashboard', icon: <FaHome className="mr-3" />, text: 'Dashboard' },
     { to: '/buyer/wishlist', icon: <FaHeart className="mr-3" />, text: 'My Wishlist' },
     { to: '/buyer/bookings', icon: <FaEnvelope className="mr-3" />, text: 'My Bookings' },
+    { to: '/buyer/messages', icon: <FaComments className="mr-3" />, text: 'Messages' }, // NEW
     { to: '/buyer/profile', icon: <FaUser className="mr-3" />, text: 'Profile' },
   ];
 
@@ -44,7 +46,7 @@ const BuyerSidebar = () => {
         }`}
       >
         <div className="p-5 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">Buyer Dashboard</h2>
+          <h2 className="text-xl font-bold text-gray-800">Tenant Dashboard</h2>
         </div>
         
         <nav className="py-4">

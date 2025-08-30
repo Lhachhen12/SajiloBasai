@@ -1,3 +1,4 @@
+// src/pages/BlogPage.jsx
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getBlogPosts, getBlogCategories, getBlogTags } from '../../api/cmsApi';
@@ -21,11 +22,16 @@ const BlogPage = () => {
           getBlogTags()
         ]);
         
-        setPosts(postsData.posts);
-        setCategories(categoriesData);
-        setTags(tagsData);
+        // Adjust based on your API response structure
+        setPosts(postsData.data || postsData.posts || []);
+        setCategories(categoriesData.data || categoriesData || []);
+        setTags(tagsData.data || tagsData || []);
       } catch (error) {
         console.error('Error loading blog data:', error);
+        // Fallback to empty arrays
+        setPosts([]);
+        setCategories([]);
+        setTags([]);
       } finally {
         setLoading(false);
       }
@@ -36,57 +42,66 @@ const BlogPage = () => {
 
   const filteredPosts = posts.filter(post => {
     const matchesCategory = !selectedCategory || post.category === selectedCategory;
-    const matchesTag = !selectedTag || post.tags.includes(selectedTag);
+    const matchesTag = !selectedTag || (post.tags && post.tags.includes(selectedTag));
     const matchesSearch = !searchQuery || 
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+      (post.title && post.title.toLowerCase().includes(searchQuery.toLowerCase())) || 
+      (post.excerpt && post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesTag && matchesSearch;
   });
 
   return (
-    <div className="pt-20 pb-12 min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-blue-500 to-teal-500  text-white py-20">
-        <div className="absolute inset-0 bg-black opacity-30"></div>
-        <div className="container mx-auto px-4 relative z-10 text-center">
-          <h1 className="text-4xl font-bold mb-4">SajiloBasai Blog</h1>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-teal-50">
+      {/* Enhanced Hero Section */}
+      <div className="relative bg-gradient-to-r from-blue-600 via-blue-500 to-teal-500 py-20 text-white shadow-2xl">
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <h1 className="text-3xl md:text-4xl font-bold mb-6">SajiloBasai Blog</h1>
+          <div className="w-24 h-1 bg-white mx-auto mb-6"></div>
+          <p className="text-xl md:text-xl mb-8 max-w-3xl mx-auto leading-relaxed font-reugular">
             Expert advice, market trends, and tips for finding your perfect home in Nepal
           </p>
-          <div className="max-w-md mx-auto relative">
-            <input
-              type="text"
-              placeholder="Search blog posts..."
-              className="w-full px-5 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <svg
-              className="absolute right-3 top-3 h-6 w-6 text-gray-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          
+          {/* Enhanced Search Bar */}
+          <div className="max-w-lg mx-auto relative">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search blog posts..."
+                className="w-full px-6 py-4 rounded-2xl text-gray-900 focus:outline-none focus:ring-4 focus:ring-white/30 shadow-xl border-2 border-white/20 backdrop-blur-sm bg-white/95"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <svg
+                className="absolute right-4 top-4 h-6 w-6 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* Enhanced Sidebar */}
+          <div className="lg:col-span-1 space-y-8">
             {/* Categories */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Categories</h3>
-              <div className="space-y-2">
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-200 p-6 hover:shadow-2xl transition-all duration-300">
+              <h3 className="text-xl font-bold text-gray-800 mb-6 border-b-2 border-blue-200 pb-3 flex items-center">
+                <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14-7l2 2-2 2-2-2 2-2zM5 18h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Categories
+              </h3>
+              <div className="space-y-3">
                 <button
                   onClick={() => setSelectedCategory(null)}
-                  className={`block w-full text-left px-4 py-2 rounded-md transition-colors ${
+                  className={`block w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-medium ${
                     !selectedCategory
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-blue-100 text-blue-700 shadow-md border-2 border-blue-200'
+                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm border-2 border-transparent'
                   }`}
                 >
                   All Categories
@@ -95,10 +110,10 @@ const BlogPage = () => {
                   <button
                     key={category}
                     onClick={() => setSelectedCategory(category)}
-                    className={`block w-full text-left px-4 py-2 rounded-md transition-colors ${
+                    className={`block w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-medium ${
                       selectedCategory === category
-                        ? 'bg-blue-100 text-blue-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'bg-blue-100 text-blue-700 shadow-md border-2 border-blue-200'
+                        : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm border-2 border-transparent'
                     }`}
                   >
                     {category}
@@ -108,66 +123,39 @@ const BlogPage = () => {
             </div>
 
             {/* Popular Tags */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Popular Tags</h3>
-              <div className="flex flex-wrap gap-2">
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-200 p-6 hover:shadow-2xl transition-all duration-300">
+              <h3 className="text-xl font-bold text-gray-800 mb-6 border-b-2 border-blue-200 pb-3 flex items-center">
+                <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                </svg>
+                Popular Tags
+              </h3>
+              <div className="flex flex-wrap gap-3">
                 {tags.map(tag => (
                   <button
                     key={tag}
                     onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                    className={`px-4 py-2 rounded-full text-sm transition-all duration-300 font-medium border-2 ${
                       selectedTag === tag
-                        ? 'bg-blue-100 text-blue-700 font-medium'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-blue-100 text-blue-700 border-blue-200 shadow-md'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200 hover:shadow-sm'
                     }`}
                   >
-                    {tag}
+                    #{tag}
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Featured Properties */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Featured Properties</h3>
-              <div className="space-y-4">
-                {[1, 2, 3].map(i => (
-                  <Link 
-                    to="/properties/1" 
-                    key={i} 
-                    className="flex gap-4 hover:bg-gray-50 p-2 rounded-lg transition-colors"
-                  >
-                    <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-lg overflow-hidden">
-                      <img 
-                        src={`https://source.unsplash.com/random/200x200/?house,${i}`} 
-                        alt="Property" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900">Apartment in Kathmandu</h4>
-                      <p className="text-xs text-gray-500">Rs. 35,000/month</p>
-                      <div className="flex items-center mt-1">
-                        <svg className="w-3 h-3 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className="text-xs text-gray-600">4.5 (12 reviews)</span>
-                      </div>
-                    </div>
-                  </Link>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Blog Posts */}
+          {/* Enhanced Blog Posts */}
           <div className="lg:col-span-3">
             {loading ? (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="bg-white rounded-xl shadow-md p-6 animate-pulse">
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-                    <div className="space-y-3">
+                  <div key={i} className="bg-white rounded-2xl shadow-xl border-2 border-gray-200 p-8 animate-pulse">
+                    <div className="h-8 bg-gray-200 rounded-xl w-3/4 mb-6"></div>
+                    <div className="space-y-4">
                       <div className="h-4 bg-gray-200 rounded w-1/4"></div>
                       <div className="h-4 bg-gray-200 rounded w-full"></div>
                       <div className="h-4 bg-gray-200 rounded w-2/3"></div>
@@ -176,52 +164,66 @@ const BlogPage = () => {
                 ))}
               </div>
             ) : filteredPosts.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {filteredPosts.map(post => (
-                  <article key={post.id} className="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div className="h-64 bg-gray-200 overflow-hidden">
-                      <img 
-                        src={post.featuredImage || `https://source.unsplash.com/random/800x400/?nepal,${post.id}`} 
-                        alt={post.title} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                        <span>{format(new Date(post.date), 'MMMM d, yyyy')}</span>
-                        <span>•</span>
-                        <span className="text-blue-600 font-medium">{post.category}</span>
+                  <article key={post._id || post.id} className="bg-white rounded-2xl shadow-xl border-2 border-gray-200 hover:border-blue-300 transition-all duration-300 overflow-hidden hover:shadow-2xl group">
+                    {post.featuredImage && (
+                      <div className="h-64 sm:h-80 bg-gray-200 overflow-hidden relative">
+                        <img 
+                          src={post.featuredImage} 
+                          alt={post.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                      </div>
+                    )}
+                    <div className="p-8">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
+                        <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                          <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                          </svg>
+                          <span className="font-medium">{format(new Date(post.publishedAt || post.createdAt || post.date), 'MMMM d, yyyy')}</span>
+                        </div>
+                        <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium border border-blue-200">
+                          {post.category}
+                        </div>
                       </div>
                       
-                      <h2 className="text-2xl font-bold text-gray-800 mb-3">
+                      <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4 leading-tight">
                         <Link 
                           to={`/blog/${post.slug}`}
-                          className="hover:text-blue-600 transition-colors"
+                          className="hover:text-blue-600 transition-colors duration-300"
                         >
                           {post.title}
                         </Link>
                       </h2>
                       
-                      <p className="text-gray-600 mb-4">{post.excerpt}</p>
+                      <p className="text-gray-600 mb-6 leading-relaxed text-lg">{post.excerpt}</p>
                       
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {post.tags.map(tag => (
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex flex-wrap gap-2">
+                          {post.tags && post.tags.slice(0, 3).map(tag => (
                             <span 
                               key={tag}
-                              className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs"
+                              className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium border border-gray-200"
                             >
-                              {tag}
+                              #{tag}
                             </span>
                           ))}
+                          {post.tags && post.tags.length > 3 && (
+                            <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
+                              +{post.tags.length - 3} more
+                            </span>
+                          )}
                         </div>
                         
                         <Link
                           to={`/blog/${post.slug}`}
-                          className="text-blue-600 hover:text-blue-700 font-medium flex items-center"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center shadow-lg hover:shadow-xl"
                         >
                           Read More
-                          <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </Link>
@@ -231,17 +233,20 @@ const BlogPage = () => {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                <svg
-                  className="mx-auto h-16 w-16 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h2 className="text-2xl font-semibold text-gray-800 mb-3">No Posts Found</h2>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-200 p-12 text-center">
+                <div className="bg-gray-100 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                  <svg
+                    className="h-12 w-12 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">No Posts Found</h2>
+                <div className="w-16 h-1 bg-gray-300 mx-auto mb-6"></div>
+                <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
                   We couldn't find any posts matching your criteria. Try adjusting your filters or search query.
                 </p>
                 <button
@@ -250,7 +255,7 @@ const BlogPage = () => {
                     setSelectedTag(null);
                     setSearchQuery('');
                   }}
-                  className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   Reset All Filters
                 </button>

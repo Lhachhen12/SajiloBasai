@@ -1,4 +1,6 @@
+// backend/app.js
 import express from 'express';
+import http from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
@@ -6,6 +8,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/database.js';
+import WebSocketService from './utils/websocketService.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -33,6 +36,13 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize WebSocket service
+const wsService = new WebSocketService(server);
+
+// Make WebSocket service available to all routes
+app.locals.wsService = wsService;
 
 // Security middleware
 app.use(helmet());
@@ -82,6 +92,7 @@ app.get('/health', (req, res) => {
     message: 'SajiloBasai API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
+    websocket: wsService ? 'Connected' : 'Disconnected'
   });
 });
 
@@ -108,17 +119,18 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+const serverInstance = server.listen(PORT, () => {
   console.log(
     `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
   );
+  console.log(`📡 WebSocket service initialized`);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
   // Close server & exit process
-  server.close(() => {
+  serverInstance.close(() => {
     process.exit(1);
   });
 });

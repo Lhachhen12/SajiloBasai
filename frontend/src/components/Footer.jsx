@@ -114,9 +114,9 @@ const Footer = () => {
           <div className="mt-12 pt-4 border-t border-blue-700 text-center text-blue-200 text-sm">
             <p>&copy; {currentYear} SajiloBasai. All rights reserved.</p>
             <div className="mt-2 space-x-4">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-white transition-colors">Cookie Policy</a>
+              <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
+              <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
+              {/* <a href="#" className="hover:text-white transition-colors">Cookie Policy</a> */}
             </div>
           </div>
         </div>

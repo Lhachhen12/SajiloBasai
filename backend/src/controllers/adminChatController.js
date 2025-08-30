@@ -1,4 +1,4 @@
-
+// backend/controllers/adminChatController.js
 import { ChatRoom, Message } from '../models/chat.js';
 import Property from '../models/Property.js';
 import User from '../models/user.js';
@@ -6,10 +6,9 @@ import User from '../models/user.js';
 // Get all chat rooms for admin (with sellers)
 export const getAdminChatRooms = async (req, res) => {
   try {
-    const  user = req.user;
+    const user = req.user;
     
-    console.log(user);
-    if (user.role !== 'seller') {
+    if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
     
@@ -19,7 +18,13 @@ export const getAdminChatRooms = async (req, res) => {
     })
     .populate('participants', 'name profile.avatar role')
     .populate('propertyId', 'title images')
-    .populate('lastMessage')
+    .populate({
+      path: 'lastMessage',
+      populate: {
+        path: 'senderId',
+        select: 'name profile.avatar role'
+      }
+    })
     .sort({ updatedAt: -1 });
 
     res.status(200).json(chatRooms);
@@ -36,25 +41,35 @@ export const getOrCreateAdminSellerChat = async (req, res) => {
     const { sellerId } = req.body;
 
     // Verify user is admin
-    const admin = await user.findById(adminId);
-    if (admin.role !== 'seller') {
+    const admin = await User.findById(adminId);
+    if (admin.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
 
     // Verify seller exists
-    const seller = await user.findById(sellerId);
+    const seller = await User.findById(sellerId);
     if (!seller || seller.role !== 'seller') {
       return res.status(404).json({ message: 'Seller not found' });
     }
 
-    // Create a special admin-seller chat room (no property association)
-    const chatRoom = new ChatRoom({
-      participants: [adminId, sellerId],
+    // Check if chat room already exists
+    let chatRoom = await ChatRoom.findOne({
+      participants: { $all: [adminId, sellerId] },
       isAdminChat: true
-    });
+    })
+    .populate('participants', 'name profile.avatar role')
+    .populate('lastMessage');
 
-    await chatRoom.save();
-    await chatRoom.populate('participants', 'name profile.avatar role');
+    if (!chatRoom) {
+      // Create a special admin-seller chat room (no property association)
+      chatRoom = new ChatRoom({
+        participants: [adminId, sellerId],
+        isAdminChat: true
+      });
+
+      await chatRoom.save();
+      await chatRoom.populate('participants', 'name profile.avatar role');
+    }
     
     res.status(200).json(chatRoom);
   } catch (error) {
@@ -70,14 +85,14 @@ export const getAdminChatMessages = async (req, res) => {
     const userId = req.user.id;
 
     // Verify user is admin
-    const user = await user.findById(userId);
-    if (user.role !== 'seller') {
+    const user = await User.findById(userId);
+    if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
 
     // Verify admin is a participant in the chat room
     const chatRoom = await ChatRoom.findById(roomId);
-    if (!chatRoom || !chatRoom.participants.includes(userId)) {
+    if (!chatRoom || !chatRoom.participants.some(p => p.toString() === userId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -99,8 +114,8 @@ export const sendAdminMessage = async (req, res) => {
     const senderId = req.user.id;
 
     // Verify user is admin
-    const admin = await user.findById(senderId);
-    if (admin.role !== 'seller') {
+    const admin = await User.findById(senderId);
+    if (admin.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
 
@@ -117,11 +132,20 @@ export const sendAdminMessage = async (req, res) => {
     // Update chat room's last message
     await ChatRoom.findByIdAndUpdate(
       roomId,
-      { lastMessage: message._id }
+      { 
+        lastMessage: message._id,
+        updatedAt: new Date()
+      }
     );
 
     // Populate sender info before sending response
     await message.populate('senderId', 'name profile.avatar role');
+
+    // Send real-time notification via WebSocket
+    const wsService = req.app.locals.wsService;
+    if (wsService) {
+      wsService.notifyNewMessage(roomId, message);
+    }
 
     res.status(201).json(message);
   } catch (error) {
@@ -136,7 +160,10 @@ export const getSellersForAdmin = async (req, res) => {
     const userId = req.user.id;
 
     // Verify user is admin
-    const user = await user.findById(userId);
+    const user = await User.findById(userId);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    }
 
     // Get all sellers
     const sellers = await User.find({ role: 'seller' })

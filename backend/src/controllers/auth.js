@@ -211,3 +211,87 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     data: stats,
   });
 });
+
+// @desc    Change user password
+// @route   PUT /api/auth/change-password
+// @access  Private
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const user = await User.findById(req.user.id).select('+password');
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Verify current password
+  const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+  if (!isCurrentPasswordValid) {
+    res.status(400);
+    throw new Error('Current password is incorrect');
+  }
+
+  // Update password
+  user.password = newPassword;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'Password updated successfully',
+  });
+});
+
+// @desc    Get user profile by role
+// @route   GET /api/auth/profile/:role
+// @access  Private
+export const getProfileByRole = asyncHandler(async (req, res) => {
+  const { role } = req.params;
+  const userId = req.user.id;
+
+  if (req.user.role !== role && req.user.role !== 'admin') {
+    res.status(403);
+    throw new Error('Not authorized to access this profile');
+  }
+
+  const user = await User.findById(userId);
+  
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Add role-specific data based on user role
+  let profileData = { ...user.toObject() };
+  
+  if (role === 'seller') {
+    // Import seller-specific data
+    const Property = (await import('../models/Property.js')).default;
+    const sellerProperties = await Property.find({ sellerId: userId });
+    const activeListings = sellerProperties.filter(p => p.status === 'available');
+    
+    profileData.sellerStats = {
+      totalProperties: sellerProperties.length,
+      activeListings: activeListings.length,
+      totalEarnings: 0, // You might want to calculate this from bookings
+      averageRating: 0, // Calculate from reviews if available
+    };
+  } else if (role === 'buyer') {
+    // Import buyer-specific data
+    const Booking = (await import('../models/Booking.js')).default;
+    const Wishlist = (await import('../models/Wishlist.js')).default;
+    
+    const bookings = await Booking.find({ buyer: userId });
+    const wishlistItems = await Wishlist.find({ user: userId });
+    
+    profileData.buyerStats = {
+      totalBookings: bookings.length,
+      upcomingBookings: bookings.filter(b => new Date(b.checkInDate) > new Date()).length,
+      wishlistCount: wishlistItems.length,
+    };
+  }
+
+  res.json({
+    success: true,
+    data: profileData,
+  });
+});

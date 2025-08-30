@@ -1,3 +1,4 @@
+// backend/controllers/chatController.js
 import { ChatRoom, Message } from '../models/chat.js';
 import User from '../models/user.js';
 import Property from '../models/Property.js';
@@ -157,6 +158,12 @@ export const sendMessage = async (req, res) => {
     // Populate sender info before sending response
     await message.populate('senderId', 'name profile.avatar role');
     await message.populate('receiverId', 'name profile.avatar role');
+
+    // Send real-time notification via WebSocket
+    const wsService = req.app.locals.wsService;
+    if (wsService) {
+      wsService.notifyNewMessage(roomId, message);
+    }
 
     res.status(201).json(message);
   } catch (error) {

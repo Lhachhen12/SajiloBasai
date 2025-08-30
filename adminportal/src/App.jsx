@@ -20,6 +20,7 @@ import Bookings from './pages/Bookings';
 import Pages from './pages/Pages';
 import Feedback from './pages/Feedback';
 import Contact from './pages/Contact';
+import BlogManagement from './pages/BlogManagement ';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -68,6 +69,7 @@ function App() {
             <Route path="pages/*" element={<Pages isDark={isDark} />} />
             <Route path="feedback" element={<Feedback isDark={isDark} />} />
             <Route path="contact" element={<Contact isDark={isDark} />} />
+            <Route path="/blog-management" element={<BlogManagement isDark={isDark} />} />
             <Route path="profile" element={<Profile isDark={isDark} />} />
           </Route>
         </Routes>

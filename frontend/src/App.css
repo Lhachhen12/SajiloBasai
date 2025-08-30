@@ -41,3 +41,15 @@
   color: #888;
 }
 
+/* Prevent scrolling to footer when clicking on chat */
+html, body {
+  scroll-behavior: smooth;
+}
+
+.chat-container {
+  overflow-anchor: none;
+}
+
+.message-container {
+  overflow-anchor: auto;
+}

@@ -1,5 +1,60 @@
 import { body, validationResult } from 'express-validator';
 
+// Validate profile update
+export const validateUpdateProfile = [
+  body('name')
+    .optional()
+    .isLength({ min: 2 })
+    .withMessage('Name must be at least 2 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('Name cannot contain numbers or special characters'),
+  
+  body('email')
+    .optional()
+    .isEmail()
+    .withMessage('Please enter a valid email address'),
+  
+  body('profile.phone')
+    .optional()
+    .matches(/^[\+]?[\d\s\-\(\)]+$/)
+    .withMessage('Please enter a valid phone number'),
+  
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+    }
+    next();
+  },
+];
+
+// Validate password change
+export const validateChangePassword = [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters'),
+  
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+    }
+    next();
+  },
+];
+
 // Helper function to handle validation errors
 export const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);

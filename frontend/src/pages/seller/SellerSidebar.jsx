@@ -1,5 +1,6 @@
+// src/pages/seller/SellerSidebar.jsx
 import { NavLink } from 'react-router-dom';
-import { FaHome, FaList, FaPlus, FaEnvelope, FaUser, FaTimes, FaBars } from 'react-icons/fa';
+import { FaHome, FaList, FaPlus, FaEnvelope, FaUser, FaTimes, FaBars, FaComments } from 'react-icons/fa';
 import { useState } from 'react';
 
 const SellerSidebar = () => {
@@ -14,7 +15,8 @@ const SellerSidebar = () => {
     { to: '/seller/dashboard', icon: <FaHome className="mr-3" />, text: 'Dashboard' },
     { to: '/seller/listings', icon: <FaList className="mr-3" />, text: 'My Listings' },
     { to: '/seller/add-property', icon: <FaPlus className="mr-3" />, text: 'Add Property' },
-    { to: '/seller/messages', icon: <FaEnvelope className="mr-3" />, text: 'Messages' },
+    { to: '/seller/bookings', icon: <FaEnvelope className="mr-3" />, text: 'Bookings' },
+    { to: '/seller/messages', icon: <FaComments className="mr-3" />, text: 'Messages' }, // UPDATED
     { to: '/seller/profile', icon: <FaUser className="mr-3" />, text: 'Profile' },
   ];
 

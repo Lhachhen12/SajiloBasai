@@ -1,6 +1,7 @@
+// backend/models/chat.js
 import mongoose from 'mongoose';
 
-// In models/Chat.js
+// Chat Room Schema
 const chatRoomSchema = new mongoose.Schema({
   participants: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -21,15 +22,21 @@ const chatRoomSchema = new mongoose.Schema({
   lastMessage: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Message'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
 });
 
+// Message Schema
 const messageSchema = new mongoose.Schema({
   text: {
     type: String,
     required: true,
+    trim: true,
     maxLength: 1000
   },
   senderId: {
@@ -49,18 +56,43 @@ const messageSchema = new mongoose.Schema({
   chatRoom: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ChatRoom',
+    required: true
   },
   read: {
     type: Boolean,
     default: false
+  },
+  readAt: {
+    type: Date
+  },
+  messageType: {
+    type: String,
+    enum: ['text', 'image', 'file'],
+    default: 'text'
   }
 }, {
   timestamps: true
 });
 
-// Index for efficient querying
-chatRoomSchema.index({ participants: 1, propertyId: 1 }, { unique: true });
-messageSchema.index({ senderId: 1, receiverId: 1, propertyId: 1 });
+// Indexes for efficient querying
+chatRoomSchema.index({ participants: 1, propertyId: 1 });
+chatRoomSchema.index({ participants: 1 });
+chatRoomSchema.index({ propertyId: 1 });
+chatRoomSchema.index({ updatedAt: -1 });
+chatRoomSchema.index({ isAdminChat: 1, participants: 1 });
+
+messageSchema.index({ chatRoom: 1, createdAt: -1 });
+messageSchema.index({ receiverId: 1, read: 1 });
+messageSchema.index({ senderId: 1, createdAt: -1 });
+messageSchema.index({ propertyId: 1 });
+
+// Pre-save middleware for updating timestamps
+chatRoomSchema.pre('save', function(next) {
+  if (this.isModified() && !this.isNew) {
+    this.updatedAt = new Date();
+  }
+  next();
+});
 
 export const Message = mongoose.model('Message', messageSchema);
 export const ChatRoom = mongoose.model('ChatRoom', chatRoomSchema);

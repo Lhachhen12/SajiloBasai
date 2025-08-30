@@ -14,6 +14,7 @@ import {
   FiBookmark,
   FiCalendar,
   FiX,
+  FiBook,
 } from 'react-icons/fi';
 import { useAppContext } from '../../context/AppContext';
 
@@ -82,6 +83,11 @@ const Sidebar = ({ isOpen, toggleSidebar, isDark, navigate }) => {
       icon: <FiBarChart2 className="w-5 h-5" />,
     },
     { path: '/pages', name: 'Pages', icon: <FiFileText className="w-5 h-5" /> },
+    {
+      path: '/blog-management',
+      name: 'Blog Management',
+      icon: <FiBook className="w-5 h-5" />,
+    },
     {
       path: '/feedback',
       name: 'Feedback',

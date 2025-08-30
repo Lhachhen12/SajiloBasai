@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Mail, Phone, MapPin, Send, Check, Clock, Users, Shield, Heart } from 'lucide-react';
+import { submitContactForm } from '../api/contactApi';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ const ContactPage = () => {
   });
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -18,21 +20,21 @@ const ContactPage = () => {
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Form submitted:', formData);
-      setSubmitted(true);
-      setIsLoading(false);
+    try {
+      const result = await submitContactForm(formData);
       
-      // Reset form after 3 seconds
-      setTimeout(() => {
-        setSubmitted(false);
+      if (result.success) {
+        setSubmitted(true);
+        // Reset form
         setFormData({
           name: '',
           email: '',
@@ -40,8 +42,15 @@ const ContactPage = () => {
           subject: '',
           message: ''
         });
-      }, 3000);
-    }, 1500);
+      } else {
+        setError(result.error || 'Failed to submit form. Please try again.');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error('Form submission error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -162,6 +171,21 @@ const ContactPage = () => {
                   Fill out the form below and we'll get back to you within 24 hours.
                 </p>
               </div>
+              
+              {error && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {submitted ? (
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 text-center">

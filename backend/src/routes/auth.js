@@ -5,6 +5,8 @@ import {
   getUserProfile,
   updateUserProfile,
   logoutUser,
+  changePassword,
+  getProfileByRole,
   getDashboardStats,
 } from '../controllers/auth.js';
 import { protect } from '../middlewares/auth.js';
@@ -21,5 +23,7 @@ router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
 router.post('/logout', protect, logoutUser);
 router.get('/dashboard-stats', protect, getDashboardStats);
+router.put('/change-password', protect, changePassword);
+router.get('/profile/:role', protect, getProfileByRole);
 
 export default router;

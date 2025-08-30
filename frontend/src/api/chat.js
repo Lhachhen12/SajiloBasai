@@ -1,3 +1,4 @@
+// frontend/src/api/chat.js
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api/chat';
@@ -10,7 +11,7 @@ const api = axios.create({
 // Add token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token'); // Or get from your auth context
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -38,9 +39,8 @@ export const getMessages = async (roomId) => {
   return response.data;
 };
 
-// Send a message (updated to include roomId which is required)
+// Send a message
 export const sendMessage = async (messageData) => {
-  // Ensure required fields are present
   const { text, receiverId, roomId, propertyId } = messageData;
   
   if (!text || !receiverId || !roomId) {
@@ -75,7 +75,7 @@ export const getUnreadCount = async () => {
   return response.data;
 };
 
-// Mark messages as read (changed to POST to match your preference)
+// Mark messages as read
 export const markMessagesAsRead = async (roomId) => {
   const response = await api.post('/messages/read', { roomId });
   return response.data;

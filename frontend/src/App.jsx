@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -24,6 +24,7 @@ import BuyerSidebar from "./pages/buyer/BuyerSidebar";
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
 import BuyerWishlist from "./pages/buyer/BuyerWishlist";
 import BuyerBookings from "./pages/buyer/BuyerBookings";
+import BuyerMessages from "./pages/buyer/BuyerMessages";
 
 // Seller pages
 import SellerSidebar from "./pages/seller/SellerSidebar";
@@ -36,10 +37,14 @@ import SellerBookings from "./pages/seller/SellerBookings";
 import SellerEarnings from "./pages/seller/SellerEarnings";
 import AdminChat from "./components/AdminChat";
 import SellerChat from "./components/SellerChat";
+import SellerMessages from "./pages/seller/SellerMessages";
+import BuyerProfile from "./pages/buyer/BuyerProfile";
+import SellerProfile from "./pages/seller/SellerProfile";
 
 // Protected route components
 const BuyerRoute = ({ children }) => {
   const { isLoggedIn, isBuyer } = useAuth();
+  const location = useLocation();
 
   if (!isLoggedIn) {
     return <Navigate to="/login" state={{ from: location.pathname }} />;
@@ -54,11 +59,7 @@ const BuyerRoute = ({ children }) => {
       <div className="flex flex-1 pt-16">
         <BuyerSidebar />
         <main className="flex-1 ">
-          {" "}
-          {/* Reduced left padding */}
           <div className="p-4 sm:p-6 lg:px-8">
-            {" "}
-            {/* Adjusted horizontal padding */}
             {children}
           </div>
         </main>
@@ -69,6 +70,7 @@ const BuyerRoute = ({ children }) => {
 
 const SellerRoute = ({ children }) => {
   const { isLoggedIn, isSeller } = useAuth();
+  const location = useLocation();
 
   if (!isLoggedIn) {
     return <Navigate to="/login" state={{ from: location.pathname }} />;
@@ -133,12 +135,18 @@ function App() {
           }
         />
         <Route
+          path="/buyer/messages"
+          element={
+            <BuyerRoute>
+              <BuyerMessages />
+            </BuyerRoute>
+          }
+        />
+        <Route
           path="/buyer/profile"
           element={
             <BuyerRoute>
-              <div className="py-6 px-4 sm:px-6 lg:px-8">
-                Profile Page (To be implemented)
-              </div>
+              <BuyerProfile />
             </BuyerRoute>
           }
         />
@@ -204,18 +212,24 @@ function App() {
           path="/seller/profile"
           element={
             <SellerRoute>
-              <div className="py-6 px-4 sm:px-6 lg:px-8">
-                Profile Page (To be implemented)
-              </div>
+             <SellerProfile />  
+            </SellerRoute>
+          }
+        />
+        <Route
+          path="/seller/messages"
+          element={
+            <SellerRoute>
+              <SellerMessages />
             </SellerRoute>
           }
         />
         <Route
           path="/seller/chat"
           element={
-            <AuthProvider>
+            <SellerRoute>
               <SellerChat />
-            </AuthProvider>
+            </SellerRoute>
           }
         />
 
