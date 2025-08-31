@@ -53,7 +53,9 @@ app.use(
     origin: [
       process.env.CLIENT_URL || 'http://localhost:5173',
       'http://localhost:4100', // Admin portal
-      'http://localhost:3000', // Alternative frontend port
+      'http://localhost:3000',
+      'https://adminsajilobasai.vercel.app',
+      // Alternative frontend port
     ],
     credentials: true,
   })
