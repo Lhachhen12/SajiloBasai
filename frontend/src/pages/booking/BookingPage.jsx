@@ -86,105 +86,133 @@ const BookingPage = () => {
     return baseAmount + extraCharge;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setProcessing(true);
+ // Updated booking functions in BookingPage.jsx
 
-    try {
-      // Calculate duration in months (default to 1 month)
-      const duration = 1;
+const handleSubmitEsewa = async (e) => {
+  e.preventDefault();
+  setProcessing(true);
 
-      // Create booking data to match backend API expectations
-      const bookingData = {
-        propertyId: id,
-        contactInfo: {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-        },
-        bookingDetails: {
-          numberOfPeople: formData.numberOfPeople,
-          hasPets: formData.hasPets,
-          useType: formData.useType,
-          message: formData.message,
-          duration: duration,
-          checkInDate: new Date().toISOString(), // Immediate check-in
-        },
-        paymentMethod: formData.paymentMethod,
-      };
+  try {
+    const duration = 1;
+    const totalAmount = calculateTotalAmount();
+    
+    // Create future check-in date to avoid conflicts
+    const checkInDate = new Date();
+    checkInDate.setDate(checkInDate.getDate() + 1); // Start from tomorrow
+    
+    const checkOutDate = new Date(checkInDate);
+    checkOutDate.setMonth(checkOutDate.getMonth() + duration); // Add duration in months
 
-      console.log("Creating booking with data:", bookingData);
+    const bookingData = {
+      propertyId: id,
+      contactInfo: {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+      },
+      bookingDetails: {
+        numberOfPeople: parseInt(formData.numberOfPeople),
+        hasPets: formData.hasPets,
+        useType: formData.useType,
+        message: formData.message.trim(),
+        duration: duration,
+        checkInDate: checkInDate.toISOString(),
+        checkOutDate: checkOutDate.toISOString(),
+      },
+      paymentMethod: formData.paymentMethod,
+      amount: totalAmount,
+      currency: 'NPR'
+    };
 
-      const bookingResponse = await createBooking(bookingData);
+    console.log("Creating eSewa booking with data:", bookingData);
 
-      if (bookingResponse.success) {
-        console.log("Booking created successfully:", bookingResponse.booking);
+    const bookingResponse = await esewaBooking(bookingData);
+    console.log("eSewa Booking response:", bookingResponse);
+    
+    if (bookingResponse.success && bookingResponse.paymentUrl) {
+      window.location.href = bookingResponse.paymentUrl;
+    } else {
+      // Show more specific error message
+      const errorMessage = bookingResponse.message || "Failed to initialize eSewa payment";
+      toast.error(errorMessage);
+      console.error("eSewa booking failed:", bookingResponse);
+    }
+  } catch (error) {
+    console.error("Error creating eSewa booking:", error);
+    toast.error("Failed to create booking. Please try again.");
+  } finally {
+    setProcessing(false);
+  }
+};
 
-        // Process payment
-        const paymentResponse = await processPayment(
-          bookingResponse.booking._id,
-          formData.paymentMethod
-        );
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setProcessing(true);
 
+  try {
+    const duration = 1;
+    const totalAmount = calculateTotalAmount();
+    
+    // Create future check-in date to avoid conflicts
+    const checkInDate = new Date();
+    checkInDate.setDate(checkInDate.getDate() + 1); // Start from tomorrow
+    
+    const checkOutDate = new Date(checkInDate);
+    checkOutDate.setMonth(checkOutDate.getMonth() + duration); // Add duration in months
+
+    const bookingData = {
+      propertyId: id,
+      contactInfo: {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+      },
+      bookingDetails: {
+        numberOfPeople: parseInt(formData.numberOfPeople),
+        hasPets: formData.hasPets,
+        useType: formData.useType,
+        message: formData.message.trim(),
+        duration: duration,
+        checkInDate: checkInDate.toISOString(),
+        checkOutDate: checkOutDate.toISOString(),
+      },
+      paymentMethod: formData.paymentMethod,
+      amount: totalAmount,
+      currency: 'NPR'
+    };
+
+    console.log("Creating booking with data:", bookingData);
+
+    const bookingResponse = await createBooking(bookingData);
+    console.log("Booking response:", bookingResponse);
+
+    if (bookingResponse.success) {
+      const bookingId = bookingResponse.booking._id || bookingResponse.booking.id;
+      
+      if (bookingId) {
+        const paymentResponse = await processPayment(bookingId, formData.paymentMethod);
+        
         if (paymentResponse.success) {
           toast.success("Your room has been successfully booked!");
           navigate("/buyer/bookings");
         } else {
-          toast.error(
-            paymentResponse.message || "Payment failed. Please try again."
-          );
+          toast.error(paymentResponse.message || "Payment failed. Please try again.");
         }
       } else {
-        toast.error(bookingResponse.message || "Failed to create booking");
+        toast.error("Invalid booking response. Please try again.");
       }
-    } catch (error) {
-      console.error("Error creating booking:", error);
-      toast.error("Failed to create booking. Please try again.");
-    } finally {
-      setProcessing(false);
+    } else {
+      const errorMessage = bookingResponse.message || "Failed to create booking";
+      toast.error(errorMessage);
+      console.error("Booking creation failed:", bookingResponse);
     }
-  };
-  const handleSubmitEsewa = async (e) => {
-    e.preventDefault();
-    setProcessing(true);
-
-    try {
-      // Calculate duration in months (default to 1 month)
-      const duration = 1;
-
-      // Create booking data to match backend API expectations
-      const bookingData = {
-        propertyId: id,
-        contactInfo: {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-        },
-        bookingDetails: {
-          numberOfPeople: formData.numberOfPeople,
-          hasPets: formData.hasPets,
-          useType: formData.useType,
-          message: formData.message,
-          duration: duration,
-          checkInDate: new Date().toISOString(), // Immediate check-in
-        },
-        paymentMethod: formData.paymentMethod,
-      };
-
-      const bookingResponse = await esewaBooking(bookingData);
-      console.log("Booking response:", bookingResponse);
-      if (bookingResponse.paymentUrl) {
-        window.location.href = bookingResponse.paymentUrl; // Redirect to stripe checkout url
-      } else {
-        toast.error("Invalid response from server.");
-      }
-    } catch (error) {
-      console.error("Error creating booking:", error);
-      toast.error("Failed to create booking. Please try again.");
-    } finally {
-      setProcessing(false);
-    }
-  };
+  } catch (error) {
+    console.error("Error creating booking:", error);
+    toast.error("Failed to create booking. Please try again.");
+  } finally {
+    setProcessing(false);
+  }
+};
   if (loading) {
     return (
       <div className="pt-20 pb-12 min-h-screen bg-gray-50">

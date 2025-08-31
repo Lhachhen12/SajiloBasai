@@ -20,9 +20,28 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
 
+  // Function to validate name (letters only)
+  const validateName = (input) => {
+    const lettersOnly = /^[A-Za-z\s]*$/;
+    return lettersOnly.test(input);
+  };
+
+  const handleNameChange = (e) => {
+    const inputValue = e.target.value;
+    if (validateName(inputValue) || inputValue === '') {
+      setName(inputValue);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Validate name before submission
+    if (!validateName(name)) {
+      setError('Name can only contain letters');
+      return;
+    }
 
     if (!role) {
       setError('Please select your role (Buyer or Seller)');
@@ -156,10 +175,12 @@ const RegisterPage = () => {
                     type="text"
                     id="name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={handleNameChange}
                     placeholder="Your full name"
                     className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md transition duration-150 ease-in-out"
                     required
+                    pattern="[A-Za-z\s]+"
+                    title="Name should only contain letters"
                   />
                 </div>
               </div>
@@ -301,7 +322,7 @@ const RegisterPage = () => {
                 to="/login"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
               >
-                <LogIn className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
+                <LogIn className="-ml-1 mr-2 h-5 w-5 text-gray-50" />
                 Sign in to your account
               </Link>
             </div>

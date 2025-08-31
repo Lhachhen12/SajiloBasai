@@ -29,6 +29,23 @@ const AboutPage = () => {
     };
   };
 
+  // Team members data
+  const teamMembers = [
+    {
+      name: "Asish Tamang",
+      position: "Co-Founder & CEO",
+      bio: "With over 10 years of experience in real estate and technology, Asish is passionate about making housing accessible to all Nepalis.",
+      image: "./aka1.jpg"
+    },
+    {
+      name: "Lhachhen Wangjyu Lama",
+      position: "Head of Operations",
+      bio: "Lhachhen brings expertise in customer relations and business development, ensuring smooth operations and user satisfaction.",
+      image: "./sijan.jpg"
+      // OR if image is in public folder: image: "/sijan.jpg"
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-teal-50">
       {/* Enhanced Hero Section */}
@@ -84,12 +101,12 @@ const AboutPage = () => {
                     <p className="text-gray-600 max-w-2xl mx-auto">Meet the dedicated professionals behind SajiloBasai</p>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {content.team?.map((member, index) => (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {teamMembers.map((member, index) => (
                       <div key={index} className="bg-white rounded-xl shadow-lg border-2 border-gray-200 hover:border-blue-400 hover:shadow-2xl transition-all duration-300 overflow-hidden group">
                         <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden relative border-b-2 border-gray-200">
                           <img 
-                            src={member.image || `https://randomuser.me/api/portraits/men/${index+40}.jpg`} 
+                            src={member.image} 
                             alt={member.name} 
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />

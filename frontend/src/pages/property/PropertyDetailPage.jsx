@@ -12,6 +12,8 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import RecommendationSection from '../../components/recommendation/RecommendationSection';
 
+// Fixed PropertyDetailPage.jsx - Move seller definition after property is loaded
+
 const PropertyDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,8 +26,6 @@ const PropertyDetailPage = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
 
-  const isAvailable = property && !['sold out', 'not available'].includes(property?.status?.toLowerCase());
-
   // Mock images array
   const images = [
     'https://images.unsplash.com/photo-1560518883-ce09059eeffa',
@@ -34,15 +34,15 @@ const PropertyDetailPage = () => {
     'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
   ];
 
+  // Load property data
   useEffect(() => {
     const loadProperty = async () => {
       setLoading(true);
       try {
         const response = await getPropertyById(id);
-        console.log('Property response:', response); // Debug log to see the structure
+        console.log('Property response:', response);
         
         if (response.success || response.data) {
-          // Handle different response structures
           const propertyData = response.property || response.data || response;
           setProperty(propertyData);
           setInWishlist(false);
@@ -60,14 +60,29 @@ const PropertyDetailPage = () => {
     loadProperty();
   }, [id]);
 
+  // MOVED: Define seller and isAvailable after property is loaded
+  const isAvailable = property && !['sold out', 'not available'].includes(property?.status?.toLowerCase());
+  
+  // Get seller info from property data - Handle different possible structures
+  const seller = property ? (property.sellerId || property.seller || property.owner || {
+    _id: 'unknown',
+    name: 'Property Owner',
+    email: 'owner@example.com',
+    phone: '+977-1-234567'
+  }) : null;
+
   const handleWishlistToggle = async () => {
-    if (!isLoggedIn) {
+    console.log('handleWishlistToggle - isLoggedIn:', isLoggedIn);
+    console.log('handleWishlistToggle - currentUser:', currentUser);
+    
+    if (!isLoggedIn || !currentUser || (!currentUser.id && !currentUser._id)) {
       setShowLoginModal(true);
       return;
     }
 
     try {
-      const response = await addToWishlist(currentUser.id, property._id || property.id);
+      const userId = currentUser.id || currentUser._id;
+      const response = await addToWishlist(userId, property._id || property.id);
       if (response.success) {
         setInWishlist(!inWishlist);
       }
@@ -77,15 +92,37 @@ const PropertyDetailPage = () => {
   };
 
   const handleChatClick = () => {
+    console.log('handleChatClick - isLoggedIn:', isLoggedIn);
+    console.log('handleChatClick - currentUser:', currentUser);
+    console.log('handleChatClick - currentUser?.id:', currentUser?.id);
+    
     if (!isLoggedIn) {
+      console.log('Not logged in - showing modal');
       setShowLoginModal(true);
       return;
     }
+    
+    if (!currentUser) {
+      console.log('No currentUser - showing modal');
+      setShowLoginModal(true);
+      return;
+    }
+    
+    if (!currentUser.id && !currentUser._id) {
+      console.log('No user ID - showing modal');
+      setShowLoginModal(true);
+      return;
+    }
+    
+    console.log('All checks passed - opening chat modal');
     setShowChatModal(true);
   };
 
   const handleBookNow = () => {
-    if (!isLoggedIn) {
+    console.log('handleBookNow - isLoggedIn:', isLoggedIn);
+    console.log('handleBookNow - currentUser:', currentUser);
+    
+    if (!isLoggedIn || !currentUser || (!currentUser.id && !currentUser._id)) {
       navigate('/login', { 
         state: { 
           from: `/book/${id}`,
@@ -105,6 +142,7 @@ const PropertyDetailPage = () => {
     }).format(price);
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="pt-20 pb-12 bg-gray-50 min-h-screen">
@@ -129,6 +167,7 @@ const PropertyDetailPage = () => {
     );
   }
 
+  // Error state
   if (error || !property) {
     return (
       <div className="pt-20 pb-12 bg-gray-50 min-h-screen">
@@ -148,15 +187,7 @@ const PropertyDetailPage = () => {
     );
   }
 
-  // Get seller info from property data - Handle different possible structures
-  const seller = property.sellerId || property.seller || property.owner || {
-    _id: 'unknown',
-    name: 'Property Owner',
-    email: 'owner@example.com',
-    phone: '+977-1-234567'
-  };
-
-  // Debug log to see seller data
+  // Debug log for seller
   console.log('Seller data:', seller);
 
   return (
@@ -173,7 +204,6 @@ const PropertyDetailPage = () => {
                 pagination={{ clickable: true }}
                 className="h-96"
               >
-                {/* Use property images if available, otherwise use mock images */}
                 {(property.images && property.images.length > 0 ? property.images : images).map((image, index) => (
                   <SwiperSlide key={index}>
                     <img
@@ -306,51 +336,52 @@ const PropertyDetailPage = () => {
             </div>
           </div>
 
-          {/* Right Section */}
+          {/* Right Section - Only render if seller exists */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              {/* Seller Profile */}
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <div className="flex items-center mb-6">
-                  <div className="relative">
-                    {seller.profile?.avatar || seller.avatar ? (
-                      <img
-                        src={seller.profile?.avatar || seller.avatar}
-                        alt={seller.name}
-                        className="w-16 h-16 rounded-full mr-4"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center mr-4">
-                        <FaStore className="text-2xl text-white" />
+              {seller && (
+                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                  <div className="flex items-center mb-6">
+                    <div className="relative">
+                      {seller.profile?.avatar || seller.avatar ? (
+                        <img
+                          src={seller.profile?.avatar || seller.avatar}
+                          alt={seller.name}
+                          className="w-16 h-16 rounded-full mr-4"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center mr-4">
+                          <FaStore className="text-2xl text-white" />
+                        </div>
+                      )}
+                      <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
+                        <FaStore className="text-xs text-white" />
                       </div>
-                    )}
-                    <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
-                      <FaStore className="text-xs text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {seller.name || seller.username || 'Property Owner'}
+                      </h3>
+                      <div className="flex items-center">
+                        <span className="text-sm bg-green-100 text-green-600 px-2 py-1 rounded-full">
+                          Property Owner
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      {seller.name || seller.username || 'Property Owner'}
-                    </h3>
-                    <div className="flex items-center">
-                      <span className="text-sm bg-green-100 text-green-600 px-2 py-1 rounded-full">
-                        Property Owner
-                      </span>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center text-gray-600">
-                    <FaPhone className="mr-3 text-green-500" />
-                    <span>{seller.phone || seller.phoneNumber || 'Contact via chat'}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <FaEnvelope className="mr-3 text-green-500" />
-                    <span>{seller.email}</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center text-gray-600">
+                      <FaPhone className="mr-3 text-green-500" />
+                      <span>{seller.phone || seller.phoneNumber || 'Contact via chat'}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <FaEnvelope className="mr-3 text-green-500" />
+                      <span>{seller.email}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="space-y-4">
@@ -416,11 +447,11 @@ const PropertyDetailPage = () => {
         </div>
       )}
 
-      {/* Chat Modal */}
-      {showChatModal && property && seller && seller._id && (
+      {/* Chat Modal - Only render if we have all required data */}
+      {showChatModal && property && seller && (seller._id || seller.id) && (
         <ChatModal 
           propertyId={property._id || property.id} 
-          sellerId={seller._id} 
+          sellerId={seller._id || seller.id} 
           sellerInfo={seller}
           propertyTitle={property.title}
           onClose={() => setShowChatModal(false)} 
@@ -429,5 +460,6 @@ const PropertyDetailPage = () => {
     </div>
   );
 };
+
 
 export default PropertyDetailPage;

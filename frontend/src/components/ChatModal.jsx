@@ -22,6 +22,7 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
   const messagesContainerRef = useRef(null);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const messageIds = useRef(new Set()); // Track message IDs to prevent duplicates
 
   useEffect(() => {
     const initializeChat = async () => {
@@ -33,6 +34,8 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
 
         // Fetch messages
         const chatMessages = await getMessages(room._id);
+        // Reset message IDs to prevent duplicates
+        messageIds.current = new Set(chatMessages.map(msg => msg._id));
         setMessages(chatMessages);
 
         // Mark messages as read
@@ -78,13 +81,11 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
           console.log('WebSocket message received:', data);
           
           if (data.type === 'new_message') {
-            setMessages(prev => {
-              // Avoid duplicate messages
-              if (prev.find(msg => msg._id === data.message._id)) {
-                return prev;
-              }
-              return [...prev, data.message];
-            });
+            // Check for duplicate messages
+            if (!messageIds.current.has(data.message._id)) {
+              messageIds.current.add(data.message._id);
+              setMessages(prev => [...prev, data.message]);
+            }
           } else if (data.type === 'user_typing') {
             if (data.userId !== currentUser.id) {
               setTypingUser(data.userName || 'Someone');
@@ -151,6 +152,8 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
       };
 
       const sentMessage = await sendMessage(newMessage);
+      // Add to message IDs to prevent duplicates
+      messageIds.current.add(sentMessage._id);
       
       // Add message immediately for better UX (WebSocket will handle duplicates)
       setMessages(prev => [...prev, sentMessage]);
@@ -183,8 +186,8 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
       senderName: msg.senderId.name,
       alignment: isCurrentUser ? 'justify-end' : 'justify-start',
       bubbleColor: isCurrentUser 
-        ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
-        : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-200',
+        ? 'bg-blue-500 text-white'
+        : 'bg-gray-100 text-gray-800',
       roleIcon: isSeller ? <FaStore className="text-xs" /> : <FaUser className="text-xs" />,
       roleLabel: isSeller ? 'Seller' : 'Buyer'
     };
@@ -235,33 +238,34 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg w-full max-w-md h-[80vh] flex flex-col shadow-2xl">
+      <div className="bg-white rounded-lg w-full max-w-md h-[80vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header - Shows OTHER participant's info */}
-        <div className="bg-gradient-to-r from-blue-500 to-teal-500 text-white p-4 rounded-t-lg flex justify-between items-center">
+        <div className="bg-gray-100 p-4 border-b border-gray-200 flex justify-between items-center">
           <div className="flex items-center">
             <div className="relative">
               {otherParticipant.avatar ? (
                 <img
                   src={otherParticipant.avatar}
                   alt={otherParticipant.name}
-                  className="w-12 h-12 rounded-full mr-3"
+                  className="w-10 h-10 rounded-full mr-3 object-cover"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-3">
+                <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center mr-3 text-white">
                   {otherParticipant.icon}
                 </div>
               )}
             </div>
             <div>
-              <h2 className="text-lg font-semibold">
+              <h2 className="text-lg font-semibold text-gray-800">
                 {otherParticipant.name}
               </h2>
-              <div className="flex items-center text-sm opacity-90">
+              <div className="flex items-center text-xs text-gray-500">
                 <span className="mr-2">{otherParticipant.role}</span>
                 {propertyTitle && (
                   <>
+                    <span className="mx-1">•</span>
                     <FaHome className="mr-1" />
-                    <span className="truncate">{propertyTitle}</span>
+                    <span className="truncate max-w-xs">{propertyTitle}</span>
                   </>
                 )}
               </div>
@@ -269,9 +273,9 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
           </div>
           <button 
             onClick={onClose} 
-            className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-white hover:bg-opacity-20 rounded-full"
+            className="text-gray-500 hover:text-gray-700 transition-colors p-2 rounded-full hover:bg-gray-200"
           >
-            <FaTimes className="text-xl" />
+            <FaTimes className="text-lg" />
           </button>
         </div>
 
@@ -285,17 +289,17 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
         {/* Messages */}
         <div 
           ref={messagesContainerRef}
-          className="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-gray-50 to-white space-y-4"
+          className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-2"
         >
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 mt-8">
               <div className="mb-4">
-                <div className="bg-gradient-to-r from-blue-100 to-teal-100 rounded-full p-4 inline-block">
-                  <FaUser className="text-4xl text-blue-500" />
+                <div className="bg-gray-200 rounded-full p-4 inline-block">
+                  <FaUser className="text-2xl text-gray-600" />
                 </div>
               </div>
-              <p className="text-lg font-medium mb-2">Start the conversation!</p>
-              <p className="text-sm">Send a message to {otherParticipant.name}</p>
+              <p className="text-sm font-medium mb-2">Start the conversation!</p>
+              <p className="text-xs">Send a message to {otherParticipant.name}</p>
             </div>
           ) : (
             messages.map((msg) => {
@@ -315,11 +319,11 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
                     )}
                     
                     {/* Message bubble */}
-                    <div className={`px-4 py-2 rounded-lg shadow-sm ${messageInfo.bubbleColor} ${
-                      messageInfo.isCurrentUser ? 'rounded-tr-none' : 'rounded-tl-none'
+                    <div className={`px-4 py-2 rounded-2xl ${messageInfo.bubbleColor} ${
+                      messageInfo.isCurrentUser ? 'rounded-br-none' : 'rounded-bl-none'
                     }`}>
                       <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
-                      <div className="flex justify-between items-center mt-1">
+                      <div className="flex justify-end items-center mt-1">
                         <p className="text-xs opacity-70">
                           {new Date(msg.createdAt).toLocaleTimeString([], {
                             hour: "2-digit",
@@ -330,7 +334,7 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
                         {messageInfo.isCurrentUser && (
                           <div className="flex items-center ml-2">
                             {msg.read ? (
-                              <FaCheckDouble className="text-xs opacity-70 text-blue-400" title="Read" />
+                              <FaCheckDouble className="text-xs opacity-70 text-blue-300" title="Read" />
                             ) : (
                               <FaCheck className="text-xs opacity-70" title="Sent" />
                             )}
@@ -348,14 +352,14 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
           {isTyping && typingUser && (
             <div className="flex justify-start">
               <div className="max-w-xs">
-                <div className="bg-gray-200 px-4 py-2 rounded-lg rounded-tl-none">
+                <div className="bg-gray-200 px-4 py-2 rounded-2xl rounded-bl-none">
                   <div className="flex items-center space-x-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
-                    <span className="text-xs text-gray-500">{typingUser} is typing...</span>
+                    <span className="text-xs text-gray-600">{typingUser} is typing...</span>
                   </div>
                 </div>
               </div>
@@ -368,7 +372,7 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
         {/* Message Input */}
         <form
           onSubmit={handleSendMessage}
-          className="p-4 border-t border-gray-200 bg-white rounded-b-lg"
+          className="p-4 border-t border-gray-200 bg-white"
         >
           <div className="flex items-center">
             <input
@@ -379,13 +383,13 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
                 handleTyping();
               }}
               placeholder={`Message ${otherParticipant.name}...`}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-l-full focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-all"
               disabled={!chatRoom}
               maxLength={1000}
             />
             <button
               type="submit"
-              className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white px-4 py-2 rounded-r-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-md"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-r-full transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               disabled={!message.trim() || !chatRoom}
             >
               <FaPaperPlane />

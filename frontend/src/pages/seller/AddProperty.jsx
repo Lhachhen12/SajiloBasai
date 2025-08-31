@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   createProperty,
@@ -17,8 +17,42 @@ import {
   FiX,
   FiUpload,
   FiMap,
+  FiSearch,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import L from 'leaflet';
+
+// Import Leaflet CSS
+const leafletCSS = `
+  @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+`;
+
+// Nominatim geocoding service (free OpenStreetMap service)
+const geocodeWithNominatim = async (query) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}, Nepal&limit=5`
+    );
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return [];
+  }
+};
+
+const reverseGeocodeWithNominatim = async (lat, lng) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+    );
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Reverse geocoding error:', error);
+    return null;
+  }
+};
 
 const AddProperty = () => {
   const navigate = useNavigate();
@@ -26,6 +60,14 @@ const AddProperty = () => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [showCoordinates, setShowCoordinates] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
 
   const [propertyData, setPropertyData] = useState({
     title: '',
@@ -64,6 +106,51 @@ const AddProperty = () => {
     accuracy: null
   });
 
+  const [mapCenter, setMapCenter] = useState([27.7172, 85.3240]); // Kathmandu center
+  const [selectedLocation, setSelectedLocation] = useState(null);
+
+  // Initialize map when showMap becomes true
+  useEffect(() => {
+    if (showMap && mapRef.current && !mapInstanceRef.current) {
+      // Add Leaflet CSS
+      if (!document.querySelector('#leaflet-css')) {
+        const style = document.createElement('style');
+        style.id = 'leaflet-css';
+        style.textContent = leafletCSS;
+        document.head.appendChild(style);
+      }
+
+      // Initialize map
+      mapInstanceRef.current = L.map(mapRef.current).setView(mapCenter, 13);
+
+      // Add tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapInstanceRef.current);
+
+      // Add click event
+      mapInstanceRef.current.on('click', async (e) => {
+        const { lat, lng } = e.latlng;
+        await handleMapClick(lat, lng);
+      });
+    }
+
+    return () => {
+      if (mapInstanceRef.current && !showMap) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, [showMap]);
+
+  // Update map center when mapCenter state changes
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView(mapCenter, 15);
+    }
+  }, [mapCenter]);
+
   const propertyTypes = [
     { value: 'room', label: 'Room' },
     { value: 'apartment', label: 'Apartment' },
@@ -80,10 +167,10 @@ const AddProperty = () => {
   ];
 
   const flatTypes = [
-    { value: '1BHK', label: '1 BHK' },
-    { value: '2BHK', label: '2 BHK' },
-    { value: '3BHK', label: '3 BHK' },
-    { value: '4BHK', label: '4 BHK' },
+    { value: '1bhk', label: '1 BHK' },
+    { value: '2bhk', label: '2 BHK' },
+    { value: '3bhk', label: '3 BHK' },
+    { value: '4bhk', label: '4 BHK' },
     { value: 'penthouse', label: 'Penthouse' },
   ];
 
@@ -131,6 +218,146 @@ const AddProperty = () => {
     'Family Preferred',
     'Students Welcome',
   ];
+
+  // Map event handlers
+  const handleMapClick = useCallback(async (lat, lng) => {
+    setSelectedLocation([lat, lng]);
+    setCoordinates({
+      latitude: lat.toString(),
+      longitude: lng.toString(),
+      accuracy: 1.0 // High accuracy for manual selection
+    });
+
+    // Remove existing marker
+    if (markerRef.current) {
+      mapInstanceRef.current.removeLayer(markerRef.current);
+    }
+
+    // Add new marker
+    markerRef.current = L.marker([lat, lng])
+      .addTo(mapInstanceRef.current)
+      .bindPopup(`
+        <div style="text-align: center;">
+          <p style="margin: 0; font-weight: bold; color: #1f2937;">Selected Location</p>
+          <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+        </div>
+      `)
+      .openPopup();
+
+    // Reverse geocode to get address
+    const addressData = await reverseGeocodeWithNominatim(lat, lng);
+    if (addressData && addressData.display_name) {
+      // Update the main location field with the reverse geocoded address
+      setPropertyData(prev => ({
+        ...prev,
+        location: addressData.display_name, // Auto-update the Property Address/Location field
+        address: {
+          street: `${addressData.address?.house_number || ''} ${addressData.address?.road || ''}`.trim(),
+          city: addressData.address?.city || addressData.address?.town || addressData.address?.village || addressData.address?.suburb || '',
+          state: addressData.address?.state || addressData.address?.region || 'Nepal',
+          zipCode: addressData.address?.postcode || '',
+        },
+      }));
+    }
+
+    toast.success('Location selected and address updated automatically!');
+  }, []);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setSearching(true);
+    try {
+      // First try your backend's geocoding API for better results
+      const backendResult = await geocodeAddress(searchQuery.trim());
+      
+      if (backendResult.success) {
+        const { coordinates: coords, formattedAddress } = backendResult;
+        const lat = coords.latitude;
+        const lng = coords.longitude;
+        
+        // Create a result that matches Nominatim format for consistency
+        const result = {
+          lat: lat.toString(),
+          lon: lng.toString(),
+          display_name: formattedAddress || searchQuery,
+          address: {
+            city: propertyData.address.city || 'Kathmandu'
+          }
+        };
+        
+        await selectSearchResult(result);
+        setSearchResults([]);
+        setSearchQuery('');
+        return;
+      }
+    } catch (error) {
+      console.warn('Backend geocoding failed, trying Nominatim:', error);
+    }
+
+    // Fallback to Nominatim if backend geocoding fails
+    try {
+      const results = await geocodeWithNominatim(searchQuery);
+      setSearchResults(results.slice(0, 5)); // Limit to 5 results
+    } catch (error) {
+      toast.error('Error searching for location');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const selectSearchResult = async (result) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    
+    setMapCenter([lat, lng]);
+    await handleMapClick(lat, lng);
+
+    // Update the main location field with the selected search result
+    setPropertyData(prev => ({
+      ...prev,
+      location: result.display_name, // Auto-update the Property Address/Location field
+      address: {
+        street: result.display_name.split(',')[0] || '',
+        city: result.address?.city || result.address?.town || result.address?.village || '',
+        state: result.address?.state || result.address?.region || 'Nepal',
+        zipCode: result.address?.postcode || '',
+      },
+    }));
+
+    setSearchResults([]);
+    setSearchQuery('');
+    toast.success('Location found and address updated automatically!');
+  };
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          setMapCenter([lat, lng]);
+          setCoordinates({
+            latitude: lat.toString(),
+            longitude: lng.toString(),
+            accuracy: position.coords.accuracy ? (1 / position.coords.accuracy) : 0.8
+          });
+
+          await handleMapClick(lat, lng); // This will handle marker creation and address update
+
+          toast.success('Current location detected and address updated!');
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          toast.error('Could not get your current location');
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 600000 }
+      );
+    } else {
+      toast.error('Geolocation is not supported by this browser');
+    }
+  };
 
   const handlePropertyChange = (e) => {
     const { name, value, type } = e.target;
@@ -190,28 +417,78 @@ const AddProperty = () => {
 
   // Add this function to handle geocoding
   const handleGeocode = async () => {
-    if (!propertyData.location) {
-      toast.error('Please enter a location first');
+    if (!propertyData.location.trim()) {
+      toast.error('Please enter a property address first');
       return;
     }
 
     setGeocoding(true);
     try {
-      const result = await geocodeAddress(propertyData.location, propertyData.address.city);
+      // Use your backend's geocoding API
+      const result = await geocodeAddress(propertyData.location.trim(), propertyData.address.city);
       
       if (result.success) {
+        const { coordinates: coords, formattedAddress } = result;
+        
+        // Update coordinates state
         setCoordinates({
-          latitude: result.coordinates.latitude,
-          longitude: result.coordinates.longitude,
-          accuracy: result.coordinates.accuracy
+          latitude: coords.latitude.toString(),
+          longitude: coords.longitude.toString(),
+          accuracy: coords.accuracy || 0.9
         });
-        toast.success('Location coordinates found!');
+
+        // Update map center and add marker
+        const lat = coords.latitude;
+        const lng = coords.longitude;
+        setMapCenter([lat, lng]);
+        setSelectedLocation([lat, lng]);
+
+        // Add marker to map if map is visible
+        if (mapInstanceRef.current) {
+          // Remove existing marker
+          if (markerRef.current) {
+            mapInstanceRef.current.removeLayer(markerRef.current);
+          }
+
+          // Add new marker
+          markerRef.current = L.marker([lat, lng])
+            .addTo(mapInstanceRef.current)
+            .bindPopup(`
+              <div style="text-align: center;">
+                <p style="margin: 0; font-weight: bold; color: #1f2937;">Found Location</p>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                <p style="margin: 4px 0 0 0; font-size: 11px; color: #6b7280;">${formattedAddress || propertyData.location}</p>
+              </div>
+            `)
+            .openPopup();
+
+          // Pan to location
+          mapInstanceRef.current.setView([lat, lng], 15);
+        }
+
+        // Auto-fill address fields if we have formatted address
+        if (formattedAddress) {
+          // Try to parse the formatted address
+          const addressParts = formattedAddress.split(',').map(part => part.trim());
+          
+          setPropertyData(prev => ({
+            ...prev,
+            address: {
+              ...prev.address,
+              street: addressParts[0] || prev.address.street,
+              city: addressParts.length > 1 ? addressParts[addressParts.length - 2] : prev.address.city,
+              state: addressParts.length > 2 ? addressParts[addressParts.length - 1] : 'Nepal'
+            },
+          }));
+        }
+
+        toast.success('Location found and coordinates updated!');
       } else {
-        toast.error(result.message || 'Could not find coordinates for this location');
+        toast.error(result.message || 'Could not find coordinates for this address');
       }
     } catch (error) {
       console.error('Geocoding error:', error);
-      toast.error('Failed to geocode address');
+      toast.error('Failed to find location. Please check the address.');
     } finally {
       setGeocoding(false);
     }
@@ -307,35 +584,51 @@ const AddProperty = () => {
     setLoading(true);
 
     try {
-      // Format data to match the Property model - INCLUDING COORDINATES
+      // Format data to match your backend's expected format
       const formattedPropertyData = {
-        title: propertyData.title,
-        description: propertyData.description,
+        title: propertyData.title.trim(),
+        description: propertyData.description.trim(),
         type: propertyData.type.toLowerCase(),
-        roomType: propertyData.type === 'room' ? propertyData.roomType : undefined,
-        flatType: (propertyData.type === 'flat' || propertyData.type === 'apartment') ? propertyData.flatType : undefined,
         price: Number(propertyData.price),
-        location: propertyData.location,
+        location: propertyData.location.trim(),
         area: Number(propertyData.area),
-        bedrooms: Number(propertyData.bedrooms),
-        bathrooms: Number(propertyData.bathrooms),
+        bedrooms: Number(propertyData.bedrooms) || 0,
+        bathrooms: Number(propertyData.bathrooms) || 0,
         features: propertyData.features,
         images: propertyData.images.filter((img) => img && img.trim() !== ''),
         amenities: propertyData.amenities,
         rules: propertyData.rules,
-        address: propertyData.address,
+        address: {
+          street: propertyData.address.street?.trim() || '',
+          city: propertyData.address.city?.trim() || propertyData.location,
+          state: propertyData.address.state?.trim() || 'Nepal',
+          zipCode: propertyData.address.zipCode?.trim() || ''
+        },
         availableFrom: new Date(propertyData.availableFrom),
-        status: 'pending',
-        // ADD COORDINATES IF AVAILABLE
-        ...(coordinates.latitude && coordinates.longitude && {
-          coordinates: {
-            latitude: Number(coordinates.latitude),
-            longitude: Number(coordinates.longitude),
-            accuracy: coordinates.accuracy,
-            lastUpdated: new Date()
-          }
-        })
+        status: 'available' // Changed from 'pending' to match your data
       };
+
+      // Add conditional fields based on type
+      if (propertyData.type === 'room' && propertyData.roomType) {
+        formattedPropertyData.roomType = propertyData.roomType;
+      }
+
+      if ((propertyData.type === 'flat' || propertyData.type === 'apartment') && propertyData.flatType) {
+        // Convert flatType to lowercase to match backend format
+        formattedPropertyData.flatType = propertyData.flatType.toLowerCase();
+      }
+
+      // Add coordinates if available
+      if (coordinates.latitude && coordinates.longitude) {
+        formattedPropertyData.coordinates = {
+          latitude: Number(coordinates.latitude),
+          longitude: Number(coordinates.longitude),
+          accuracy: coordinates.accuracy || 1.0,
+          lastUpdated: new Date()
+        };
+      }
+
+      console.log('Formatted property data:', formattedPropertyData);
 
       const response = await createProperty(formattedPropertyData);
 
@@ -483,25 +776,22 @@ const AddProperty = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location *
+                  Property Address/Location *
                 </label>
-                <select
-                  name="location"
-                  value={propertyData.location}
-                  onChange={handlePropertyChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Select Location</option>
-                  {locations.map((location) => (
-                    <option
-                      key={location}
-                      value={location}
-                    >
-                      {location}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    name="location"
+                    value={propertyData.location}
+                    onChange={handlePropertyChange}
+                    placeholder="Enter full address (e.g., Kathmandu Metropolitan City-16, Balaju, Kathmandu)"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    Enter the complete address where your property is located. This will be used to find exact coordinates.
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -564,19 +854,6 @@ const AddProperty = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Available From
-                </label>
-                <input
-                  type="date"
-                  name="availableFrom"
-                  value={propertyData.availableFrom}
-                  onChange={handlePropertyChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description
@@ -590,17 +867,38 @@ const AddProperty = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+
+              {/* Property Address/Location - Moved here for better UX */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property Address/Location *
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    name="location"
+                    value={propertyData.location}
+                    onChange={handlePropertyChange}
+                    placeholder="Enter full address (e.g., Kathmandu Metropolitan City-16, Balaju, Kathmandu)"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    Enter the complete address where your property is located, or use the map below to select location automatically.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Address Section */}
+          {/* Address & Location Selection Section - Now separate */}
           <div>
             <div className="flex items-center space-x-3 mb-6">
               <div className="p-2 bg-green-100 rounded-lg">
                 <FiMapPin className="h-5 w-5 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900">
-                Address Details
+                Address Details & Location Selection
               </h3>
             </div>
 
@@ -661,83 +959,214 @@ const AddProperty = () => {
                 />
               </div>
 
-              {/* Location Coordinates Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Available From
+                </label>
+                <input
+                  type="date"
+                  name="availableFrom"
+                  value={propertyData.availableFrom}
+                  onChange={handlePropertyChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Enhanced Location Selection Section with Vanilla Leaflet */}
               <div className="md:col-span-2">
                 <div className="border-t pt-6 mt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-lg font-medium text-gray-900">
-                      Location Coordinates (Optional)
+                      Precise Location Selection
                     </h4>
                     <button
                       type="button"
-                      onClick={() => setShowCoordinates(!showCoordinates)}
-                      className="text-blue-500 hover:text-blue-600 text-sm font-medium"
+                      onClick={() => setShowMap(!showMap)}
+                      className="flex items-center space-x-2 text-blue-500 hover:text-blue-600 text-sm font-medium"
                     >
-                      {showCoordinates ? 'Hide' : 'Show'} Coordinates
+                      <FiMap className="h-4 w-4" />
+                      <span>{showMap ? 'Hide Map' : 'Show Map'}</span>
                     </button>
                   </div>
                   
-                  {showCoordinates && (
+                  {showMap && (
                     <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <h5 className="font-medium text-blue-900 mb-1">How to set your property location:</h5>
+                        <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                          <li><strong>Type address:</strong> Enter address in the field above, then click "Find Coordinates"</li>
+                          <li><strong>Search on map:</strong> Use the search box below to find a specific location</li>
+                          <li><strong>Click on map:</strong> Click anywhere on the map to select exact location</li>
+                          <li><strong>Use GPS:</strong> Click "Use Current Location" if you're at the property</li>
+                        </ol>
+                        <p className="text-xs text-blue-700 mt-2 font-medium">
+                          💡 The "Property Address/Location" field above will automatically update when you select a location!
+                        </p>
+                      </div>
+                      
                       <p className="text-sm text-gray-600">
-                        Adding precise coordinates helps users find your property more easily and improves search results.
+                        Use the map below to select the exact location of your property. You can search for an address, click on the map, or use your current location.
                       </p>
                       
-                      <div className="flex items-center space-x-4">
+                      {/* Map Controls */}
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            placeholder="Search for address or place in Nepal..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                            className="w-full pl-10 pr-20 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          />
+                          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <button
+                            type="button"
+                            onClick={handleSearch}
+                            disabled={searching || !searchQuery.trim()}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-3 py-1 rounded text-xs font-medium"
+                          >
+                            {searching ? '...' : 'Search'}
+                          </button>
+                        </div>
+                        
                         <button
                           type="button"
-                          onClick={handleGeocode}
-                          disabled={geocoding || !propertyData.location}
-                          className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          onClick={getCurrentLocation}
+                          className="flex items-center justify-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                         >
-                          <FiMap className="h-4 w-4" />
-                          <span>{geocoding ? 'Finding Location...' : 'Auto-Detect Coordinates'}</span>
+                          <FiMapPin className="h-4 w-4" />
+                          <span>Use Current Location</span>
                         </button>
-                        
-                        {coordinates.latitude && coordinates.longitude && (
-                          <span className="text-sm text-green-600 font-medium">
-                            ✓ Coordinates found
-                          </span>
-                        )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Latitude
-                          </label>
-                          <input
-                            type="number"
-                            value={coordinates.latitude}
-                            onChange={(e) => setCoordinates(prev => ({...prev, latitude: e.target.value}))}
-                            placeholder="27.7172"
-                            step="any"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                          />
+                      {/* Search Results */}
+                      {searchResults.length > 0 && (
+                        <div className="bg-white rounded-lg border border-gray-300 max-h-48 overflow-y-auto">
+                          {searchResults.map((result, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => selectSearchResult(result)}
+                              className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 focus:bg-blue-50 focus:outline-none"
+                            >
+                              <div className="font-medium text-gray-900 text-sm">
+                                {result.display_name.split(',').slice(0, 3).join(', ')}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {result.display_name}
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Longitude
-                          </label>
-                          <input
-                            type="number"
-                            value={coordinates.longitude}
-                            onChange={(e) => setCoordinates(prev => ({...prev, longitude: e.target.value}))}
-                            placeholder="85.3240"
-                            step="any"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                          />
-                        </div>
+                      )}
+
+                      {/* Map Container */}
+                      <div className="rounded-lg overflow-hidden border border-gray-300">
+                        <div
+                          ref={mapRef}
+                          style={{ height: '400px', width: '100%' }}
+                          className="bg-gray-100"
+                        />
                       </div>
-                      
-                      {coordinates.accuracy && (
-                        <p className="text-xs text-gray-500">
-                          Accuracy: {(coordinates.accuracy * 100).toFixed(1)}%
-                        </p>
+
+                      {/* Selected Location Info */}
+                      {selectedLocation && (
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <h5 className="font-medium text-blue-900 mb-2">Selected Location</h5>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-blue-700 font-medium">Latitude:</span>
+                              <span className="ml-2 text-blue-800">{selectedLocation[0].toFixed(6)}</span>
+                            </div>
+                            <div>
+                              <span className="text-blue-700 font-medium">Longitude:</span>
+                              <span className="ml-2 text-blue-800">{selectedLocation[1].toFixed(6)}</span>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
+
+                  {/* Traditional Coordinates Section */}
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-medium text-gray-900">
+                        Manual Coordinates (Alternative)
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setShowCoordinates(!showCoordinates)}
+                        className="text-blue-500 hover:text-blue-600 text-sm font-medium"
+                      >
+                        {showCoordinates ? 'Hide' : 'Show'} Manual Entry
+                      </button>
+                    </div>
+                    
+                    {showCoordinates && (
+                      <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600">
+                          If you prefer, you can manually enter coordinates or use the auto-detect feature below.
+                        </p>
+                        
+                        <div className="flex items-center space-x-4">
+                          <button
+                            type="button"
+                            onClick={handleGeocode}
+                            disabled={geocoding || !propertyData.location.trim()}
+                            className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            <FiMap className="h-4 w-4" />
+                            <span>{geocoding ? 'Finding Location...' : 'Find Coordinates from Address'}</span>
+                          </button>
+                          
+                          {coordinates.latitude && coordinates.longitude && (
+                            <span className="text-sm text-green-600 font-medium flex items-center space-x-1">
+                              <span>✓</span>
+                              <span>Coordinates found</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Latitude
+                            </label>
+                            <input
+                              type="number"
+                              value={coordinates.latitude}
+                              onChange={(e) => setCoordinates(prev => ({...prev, latitude: e.target.value}))}
+                              placeholder="27.7172"
+                              step="any"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Longitude
+                            </label>
+                            <input
+                              type="number"
+                              value={coordinates.longitude}
+                              onChange={(e) => setCoordinates(prev => ({...prev, longitude: e.target.value}))}
+                              placeholder="85.3240"
+                              step="any"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                          </div>
+                        </div>
+                        
+                        {coordinates.accuracy && (
+                          <p className="text-xs text-gray-500">
+                            Accuracy: {(coordinates.accuracy * 100).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

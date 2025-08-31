@@ -22,12 +22,12 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
 
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isWishlistUpdating, setIsWishlistUpdating] = useState(false);
-  const { isLoggedIn, currentUser } = useAuth();
+  const { isLoggedIn, currentUser } = useAuth(); // Only use currentUser from your AuthContext
   const navigate = useNavigate();
 
   // Load initial wishlist state from localStorage
   useEffect(() => {
-    if (currentUser && id) {
+    if (currentUser && currentUser.id && id) {
       const wishlistState = getWishlistState(currentUser.id, id);
       setIsInWishlist(wishlistState);
     }
@@ -67,7 +67,7 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
   };
 
   const handleWishlistToggle = async () => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !currentUser) {
       navigate('/login', { state: { from: window.location.pathname } });
       return;
     }
@@ -106,7 +106,8 @@ const PropertyCard = ({ property, onWishlistUpdate }) => {
   };
 
   const handleBookNow = () => {
-    if (!isLoggedIn) {
+    // FIXED: Check both isLoggedIn AND currentUser exists
+    if (!isLoggedIn || !currentUser) {
       navigate('/login', { 
         state: { 
           from: `/book/${id}`,

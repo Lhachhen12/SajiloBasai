@@ -8,7 +8,7 @@ import {
   sendSellerMessage,
   markSellerMessagesAsRead
 } from '../../api/sellerChatApi';
-import { FaPaperPlane, FaUser, FaComments, FaHome, FaUsers, FaStore, FaCrown, FaBuilding, FaTimes } from 'react-icons/fa';
+import { FaPaperPlane, FaUser, FaComments, FaHome, FaUsers, FaStore, FaCrown, FaBuilding, FaTimes, FaCheck, FaCheckDouble } from 'react-icons/fa';
 
 const SellerMessages = () => {
   const { currentUser } = useAuth();
@@ -20,9 +20,12 @@ const SellerMessages = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [isTyping, setIsTyping] = useState(false);
+  const [typingUser, setTypingUser] = useState(null);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const wsRef = useRef(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const messageIds = useRef(new Set()); // Track message IDs to prevent duplicates
 
   useEffect(() => {
     loadChatData();
@@ -63,11 +66,19 @@ const SellerMessages = () => {
         const data = JSON.parse(event.data);
         
         if (data.type === 'new_message') {
-          setMessages(prev => [...prev, data.message]);
+          // Check for duplicate messages
+          if (!messageIds.current.has(data.message._id)) {
+            messageIds.current.add(data.message._id);
+            setMessages(prev => [...prev, data.message]);
+          }
         } else if (data.type === 'user_typing') {
           if (data.userId !== currentUser.id) {
+            setTypingUser(data.userName || 'Someone');
             setIsTyping(true);
-            setTimeout(() => setIsTyping(false), 2000);
+            setTimeout(() => {
+              setIsTyping(false);
+              setTypingUser(null);
+            }, 3000);
           }
         }
       };
@@ -99,6 +110,8 @@ const SellerMessages = () => {
   const loadMessages = async (roomId) => {
     try {
       const chatMessages = await getSellerChatMessages(roomId);
+      // Reset message IDs to prevent duplicates
+      messageIds.current = new Set(chatMessages.map(msg => msg._id));
       setMessages(chatMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -130,6 +143,8 @@ const SellerMessages = () => {
       };
 
       const sentMessage = await sendSellerMessage(messageData);
+      // Add to message IDs to prevent duplicates
+      messageIds.current.add(sentMessage._id);
       
       // Fallback if WebSocket is not connected
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
@@ -146,13 +161,16 @@ const SellerMessages = () => {
       wsRef.current.send(JSON.stringify({
         type: 'typing',
         roomId: selectedRoom._id,
-        userId: currentUser.id
+        userId: currentUser.id,
+        userName: currentUser.name
       }));
     }
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   // Helper function to determine message styling and info
@@ -384,7 +402,10 @@ const SellerMessages = () => {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-50 to-white space-y-4">
+              <div 
+                ref={messagesContainerRef}
+                className="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-50 to-white space-y-4"
+              >
                 {messages.length === 0 ? (
                   <div className="text-center text-gray-500 mt-8">
                     <div className="bg-gradient-to-r from-blue-100 to-teal-100 rounded-full p-4 inline-block mb-4">
@@ -427,13 +448,24 @@ const SellerMessages = () => {
                                   minute: "2-digit",
                                 })}
                               </p>
-                              {/* Role badge for own messages */}
-                              {messageInfo.isCurrentUser && (
-                                <div className="flex items-center">
-                                  <FaStore className="text-xs opacity-70 mr-1" />
-                                  <span className="text-xs opacity-70">Seller</span>
-                                </div>
-                              )}
+                              <div className="flex items-center">
+                                {messageInfo.isCurrentUser && (
+                                  <>
+                                    {msg.read ? (
+                                      <FaCheckDouble className="text-xs opacity-70 ml-2 text-blue-300" title="Read" />
+                                    ) : (
+                                      <FaCheck className="text-xs opacity-70 ml-2" title="Sent" />
+                                    )}
+                                  </>
+                                )}
+                                {/* Role badge for own messages */}
+                                {messageInfo.isCurrentUser && (
+                                  <div className="flex items-center ml-2">
+                                    <FaStore className="text-xs opacity-70 mr-1" />
+                                    <span className="text-xs opacity-70">Seller</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -443,14 +475,17 @@ const SellerMessages = () => {
                 )}
 
                 {/* Typing indicator */}
-                {isTyping && (
+                {isTyping && typingUser && (
                   <div className="flex justify-start">
                     <div className="max-w-xs">
                       <div className="bg-gray-200 px-4 py-2 rounded-lg rounded-tl-none">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="flex items-center space-x-2">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                          <span className="text-xs text-gray-500">{typingUser} is typing...</span>
                         </div>
                       </div>
                     </div>
