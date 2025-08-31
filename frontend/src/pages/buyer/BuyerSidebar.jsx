@@ -12,7 +12,7 @@ const BuyerSidebar = () => {
 
   const links = [
     { to: '/buyer/dashboard', icon: <FaHome className="mr-3" />, text: 'Dashboard' },
-    { to: '/buyer/wishlist', icon: <FaHeart className="mr-3" />, text: 'My Wishlist' },
+    // { to: '/buyer/wishlist', icon: <FaHeart className="mr-3" />, text: 'My Wishlist' },
     { to: '/buyer/bookings', icon: <FaEnvelope className="mr-3" />, text: 'My Bookings' },
     { to: '/buyer/messages', icon: <FaComments className="mr-3" />, text: 'Messages' }, // NEW
     { to: '/buyer/profile', icon: <FaUser className="mr-3" />, text: 'Profile' },

@@ -22,7 +22,7 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
   const messagesContainerRef = useRef(null);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
-  const messageIds = useRef(new Set()); // Track message IDs to prevent duplicates
+  const [messageIds, setMessageIds] = useState(new Set()); // Track message IDs to prevent duplicates
 
   useEffect(() => {
     const initializeChat = async () => {
@@ -34,9 +34,9 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
 
         // Fetch messages
         const chatMessages = await getMessages(room._id);
-        // Reset message IDs to prevent duplicates
-        messageIds.current = new Set(chatMessages.map(msg => msg._id));
         setMessages(chatMessages);
+        // Store message IDs to prevent duplicates
+        setMessageIds(new Set(chatMessages.map(msg => msg._id)));
 
         // Mark messages as read
         await markMessagesAsRead(room._id);
@@ -81,10 +81,10 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
           console.log('WebSocket message received:', data);
           
           if (data.type === 'new_message') {
-            // Check for duplicate messages
-            if (!messageIds.current.has(data.message._id)) {
-              messageIds.current.add(data.message._id);
+            // Check if message already exists to prevent duplicates
+            if (!messageIds.has(data.message._id)) {
               setMessages(prev => [...prev, data.message]);
+              setMessageIds(prev => new Set(prev).add(data.message._id));
             }
           } else if (data.type === 'user_typing') {
             if (data.userId !== currentUser.id) {
@@ -152,11 +152,10 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
       };
 
       const sentMessage = await sendMessage(newMessage);
-      // Add to message IDs to prevent duplicates
-      messageIds.current.add(sentMessage._id);
       
       // Add message immediately for better UX (WebSocket will handle duplicates)
       setMessages(prev => [...prev, sentMessage]);
+      setMessageIds(prev => new Set(prev).add(sentMessage._id));
 
     } catch (err) {
       setError("Failed to send message");
@@ -301,7 +300,7 @@ const ChatModal = ({ propertyId, sellerId, sellerInfo, propertyTitle, onClose })
               <p className="text-sm font-medium mb-2">Start the conversation!</p>
               <p className="text-xs">Send a message to {otherParticipant.name}</p>
             </div>
-          ) : (
+            ) : (
             messages.map((msg) => {
               const messageInfo = getMessageInfo(msg);
               

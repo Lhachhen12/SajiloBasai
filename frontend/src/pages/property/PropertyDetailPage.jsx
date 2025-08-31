@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPropertyById, addToWishlist } from '../../api/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaHeart, FaRegHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEye, FaUserCheck, FaUserSecret, FaEnvelope, FaPhone, FaUser, FaStore } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEye, FaUserCheck, FaUserSecret, FaEnvelope, FaPhone, FaUser, FaStore, FaArrowLeft } from 'react-icons/fa';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
 import ChatModal from '../../components/ChatModal';
@@ -134,6 +134,15 @@ const PropertyDetailPage = () => {
     navigate(`/book/${id}`);
   };
 
+  const handleBackClick = () => {
+    // Go back to previous page if available, otherwise go to properties page
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/properties');
+    }
+  };
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat('ne-NP', {
       style: 'currency',
@@ -147,6 +156,15 @@ const PropertyDetailPage = () => {
     return (
       <div className="pt-20 pb-12 bg-gray-50 min-h-screen">
         <div className="container-custom">
+          {/* Back button in loading state */}
+          <button
+            onClick={handleBackClick}
+            className="flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors duration-300"
+          >
+            <FaArrowLeft className="mr-2" />
+            Back
+          </button>
+          
           <div className="animate-pulse">
             <div className="h-96 bg-gray-300 rounded-lg mb-6"></div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -172,6 +190,15 @@ const PropertyDetailPage = () => {
     return (
       <div className="pt-20 pb-12 bg-gray-50 min-h-screen">
         <div className="container-custom">
+          {/* Back button in error state */}
+          <button
+            onClick={handleBackClick}
+            className="flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors duration-300"
+          >
+            <FaArrowLeft className="mr-2" />
+            Back
+          </button>
+          
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Property Not Found</h2>
             <p className="text-gray-600 mb-6">{error || "We couldn't find the property you're looking for."}</p>
@@ -193,6 +220,15 @@ const PropertyDetailPage = () => {
   return (
     <div className="pt-20 pb-12 bg-gray-50 min-h-screen">
       <div className="container-custom">
+        {/* Back Navigation Button */}
+        <button
+          onClick={handleBackClick}
+          className="flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors duration-300 group"
+        >
+          <FaArrowLeft className="mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
+          Back
+        </button>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Section */}
           <div className="lg:col-span-2">
@@ -460,6 +496,4 @@ const PropertyDetailPage = () => {
     </div>
   );
 };
-
-
 export default PropertyDetailPage;

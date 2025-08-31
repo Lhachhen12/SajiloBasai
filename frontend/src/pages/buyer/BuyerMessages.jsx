@@ -22,7 +22,6 @@ const BuyerMessages = () => {
   const messagesContainerRef = useRef(null);
   const wsRef = useRef(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const messageIds = useRef(new Set()); // Track message IDs to prevent duplicates
 
   useEffect(() => {
     loadChatRooms();
@@ -63,18 +62,19 @@ const BuyerMessages = () => {
         const data = JSON.parse(event.data);
         
         if (data.type === 'new_message') {
-          // Check for duplicate messages
-          if (!messageIds.current.has(data.message._id)) {
-            messageIds.current.add(data.message._id);
-            setMessages(prev => [...prev, data.message]);
-            
-            // Update chat room list with new message
-            setChatRooms(prev => prev.map(room => 
-              room._id === roomId 
-                ? { ...room, lastMessage: data.message, hasUnread: data.message.senderId._id !== currentUser.id }
-                : room
-            ));
-          }
+          setMessages(prev => {
+            if (prev.find(msg => msg._id === data.message._id)) {
+              return prev;
+            }
+            return [...prev, data.message];
+          });
+          
+          // Update chat room list with new message
+          setChatRooms(prev => prev.map(room => 
+            room._id === roomId 
+              ? { ...room, lastMessage: data.message, hasUnread: data.message.senderId._id !== currentUser.id }
+              : room
+          ));
         } else if (data.type === 'user_typing') {
           if (data.userId !== currentUser.id) {
             setTypingUser(data.userName);
@@ -122,8 +122,6 @@ const BuyerMessages = () => {
   const loadMessages = async (roomId) => {
     try {
       const chatMessages = await getMessages(roomId);
-      // Reset message IDs to prevent duplicates
-      messageIds.current = new Set(chatMessages.map(msg => msg._id));
       setMessages(chatMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -147,8 +145,6 @@ const BuyerMessages = () => {
       };
 
       const sentMessage = await sendMessage(messageData);
-      // Add to message IDs to prevent duplicates
-      messageIds.current.add(sentMessage._id);
       setMessages(prev => [...prev, sentMessage]);
       
     } catch (error) {
