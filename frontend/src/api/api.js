@@ -441,18 +441,34 @@ export const getPropertyById = async (id) => {
   }
 };
 
+// In your api.js file, update the createProperty function:
 export const createProperty = async (propertyData) => {
   try {
+    console.log('Sending property data to API:', propertyData); // Debug log
+    
     const response = await fetch(`${API_URL}/api/properties`, {
       method: 'POST',
       headers: createHeaders(true),
       body: JSON.stringify(propertyData),
     });
 
-    const data = await handleApiResponse(response);
+    // Check if response is OK before parsing JSON
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Server error response:', errorData);
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('API response:', data); // Debug log
+    
     return { success: true, property: data.data };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('Error creating property:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to create property' 
+    };
   }
 };
 

@@ -220,48 +220,74 @@ const AddProperty = () => {
   ];
 
   // Map event handlers
-  const handleMapClick = useCallback(async (lat, lng) => {
-    setSelectedLocation([lat, lng]);
-    setCoordinates({
-      latitude: lat.toString(),
-      longitude: lng.toString(),
-      accuracy: 1.0 // High accuracy for manual selection
-    });
+const handleMapClick = useCallback(async (lat, lng) => {
+  setSelectedLocation([lat, lng]);
+  setCoordinates({
+    latitude: lat.toString(),
+    longitude: lng.toString(),
+    accuracy: 1.0 // High accuracy for manual selection
+  });
 
-    // Remove existing marker
-    if (markerRef.current) {
-      mapInstanceRef.current.removeLayer(markerRef.current);
-    }
+  // Remove existing marker
+  if (markerRef.current) {
+    mapInstanceRef.current.removeLayer(markerRef.current);
+  }
 
-    // Add new marker
-    markerRef.current = L.marker([lat, lng])
-      .addTo(mapInstanceRef.current)
-      .bindPopup(`
-        <div style="text-align: center;">
-          <p style="margin: 0; font-weight: bold; color: #1f2937;">Selected Location</p>
-          <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-        </div>
-      `)
-      .openPopup();
+  // Add new marker
+  markerRef.current = L.marker([lat, lng])
+    .addTo(mapInstanceRef.current)
+    .bindPopup(`
+      <div style="text-align: center;">
+        <p style="margin: 0; font-weight: bold; color: #1f2937;">Selected Location</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+      </div>
+    `)
+    .openPopup();
 
-    // Reverse geocode to get address
-    const addressData = await reverseGeocodeWithNominatim(lat, lng);
-    if (addressData && addressData.display_name) {
-      // Update the main location field with the reverse geocoded address
-      setPropertyData(prev => ({
-        ...prev,
-        location: addressData.display_name, // Auto-update the Property Address/Location field
-        address: {
-          street: `${addressData.address?.house_number || ''} ${addressData.address?.road || ''}`.trim(),
-          city: addressData.address?.city || addressData.address?.town || addressData.address?.village || addressData.address?.suburb || '',
-          state: addressData.address?.state || addressData.address?.region || 'Nepal',
-          zipCode: addressData.address?.postcode || '',
-        },
-      }));
-    }
+  // Reverse geocode to get address
+  const addressData = await reverseGeocodeWithNominatim(lat, lng);
+  if (addressData && addressData.display_name) {
+    // Create a shorter location string (max 50 characters)
+    const shortLocation = createShortLocation(addressData);
+    
+    // Update the main location field with the shorter address
+    setPropertyData(prev => ({
+      ...prev,
+      location: shortLocation, // Use shortened location
+      address: {
+        street: `${addressData.address?.house_number || ''} ${addressData.address?.road || ''}`.trim().substring(0, 30),
+        city: addressData.address?.city || addressData.address?.town || addressData.address?.village || addressData.address?.suburb || '',
+        state: addressData.address?.state || addressData.address?.region || 'Nepal',
+        zipCode: addressData.address?.postcode || '',
+      },
+    }));
+  }
 
-    toast.success('Location selected and address updated automatically!');
-  }, []);
+  toast.success('Location selected! Address shortened to meet requirements.');
+}, []);
+
+// Helper function to create shorter location strings
+const createShortLocation = (addressData) => {
+  const address = addressData.address;
+  
+  // Try different combinations to get a good short address
+  let shortLocation = '';
+  
+  if (address.road && address.city) {
+    shortLocation = `${address.road}, ${address.city}`;
+  } else if (address.suburb && address.city) {
+    shortLocation = `${address.suburb}, ${address.city}`;
+  } else if (address.village && address.state) {
+    shortLocation = `${address.village}, ${address.state}`;
+  } else {
+    // Fallback: use the first parts of the display name
+    const parts = addressData.display_name.split(',');
+    shortLocation = parts.slice(0, 2).join(', '); // Just use first two parts
+  }
+  
+  // Ensure it's max 50 characters
+  return shortLocation.substring(0, 50);
+};
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -306,29 +332,53 @@ const AddProperty = () => {
     }
   };
 
-  const selectSearchResult = async (result) => {
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
-    
-    setMapCenter([lat, lng]);
-    await handleMapClick(lat, lng);
+ const selectSearchResult = async (result) => {
+  const lat = parseFloat(result.lat);
+  const lng = parseFloat(result.lon);
+  
+  setMapCenter([lat, lng]);
+  await handleMapClick(lat, lng);
 
-    // Update the main location field with the selected search result
-    setPropertyData(prev => ({
-      ...prev,
-      location: result.display_name, // Auto-update the Property Address/Location field
-      address: {
-        street: result.display_name.split(',')[0] || '',
-        city: result.address?.city || result.address?.town || result.address?.village || '',
-        state: result.address?.state || result.address?.region || 'Nepal',
-        zipCode: result.address?.postcode || '',
-      },
-    }));
+  // Create a shorter location string
+  const shortLocation = createShortSearchLocation(result);
 
-    setSearchResults([]);
-    setSearchQuery('');
-    toast.success('Location found and address updated automatically!');
-  };
+  // Update the main location field with the selected search result
+  setPropertyData(prev => ({
+    ...prev,
+    location: shortLocation, // Use shortened location
+    address: {
+      street: result.display_name.split(',')[0]?.substring(0, 30) || '',
+      city: result.address?.city || result.address?.town || result.address?.village || '',
+      state: result.address?.state || result.address?.region || 'Nepal',
+      zipCode: result.address?.postcode || '',
+    },
+  }));
+
+  setSearchResults([]);
+  setSearchQuery('');
+  toast.success('Location found! Address shortened to meet requirements.');
+};
+
+// Helper function for search results
+const createShortSearchLocation = (result) => {
+  const parts = result.display_name.split(',');
+  // Use the most relevant parts (usually first 2-3)
+  let shortLocation = parts.slice(0, 2).join(', ');
+  
+  // If still too long, try different combinations
+  if (shortLocation.length > 50) {
+    if (result.address?.road && result.address?.city) {
+      shortLocation = `${result.address.road}, ${result.address.city}`;
+    } else if (result.address?.suburb && result.address?.city) {
+      shortLocation = `${result.address.suburb}, ${result.address.city}`;
+    } else {
+      // Last resort: truncate
+      shortLocation = shortLocation.substring(0, 50);
+    }
+  }
+  
+  return shortLocation.substring(0, 50);
+};
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -546,111 +596,125 @@ const AddProperty = () => {
     disabled: uploadingImages,
   });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    // Basic validation
-    if (
-      !propertyData.title ||
-      !propertyData.price ||
-      !propertyData.location ||
-      !propertyData.area
-    ) {
-      toast.error(
-        'Please fill in all required fields (title, price, location, area)'
-      );
-      return;
+  // Enhanced validation with better error messages
+  const errors = [];
+
+  // Required field validation
+  if (!propertyData.title?.trim()) {
+    errors.push('Property title is required');
+  }
+
+  if (!propertyData.description?.trim()) {
+    errors.push('Property description is required');
+  }
+
+  if (!propertyData.price) {
+    errors.push('Property price is required');
+  }
+
+  if (!propertyData.location?.trim()) {
+    errors.push('Property location is required');
+  }
+
+  if (!propertyData.area) {
+    errors.push('Property area is required');
+  }
+
+  // Validate location length (max 50 characters)
+  if (propertyData.location && propertyData.location.length > 50) {
+    errors.push('Location must be 50 characters or less. Please shorten the address.');
+  }
+
+  // Validate conditional fields
+  if (propertyData.type === 'room' && !propertyData.roomType) {
+    errors.push('Room type is required for room properties');
+  }
+
+  if ((propertyData.type === 'flat' || propertyData.type === 'apartment') && !propertyData.flatType) {
+    errors.push('Flat type is required for flat/apartment properties');
+  }
+
+  if (propertyData.images.length === 0) {
+    errors.push('At least one image is required');
+  }
+
+  // Show all validation errors
+  if (errors.length > 0) {
+    errors.forEach(error => toast.error(error));
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // Format data to match your backend's expected format
+    const formattedPropertyData = {
+      title: propertyData.title.trim(),
+      description: propertyData.description.trim() || 'No description provided', // Ensure description is never empty
+      type: propertyData.type.toLowerCase(),
+      price: Number(propertyData.price),
+      location: propertyData.location.trim().substring(0, 50), // TRUNCATE TO 50 CHARACTERS
+      area: Number(propertyData.area),
+      bedrooms: Number(propertyData.bedrooms) || 0,
+      bathrooms: Number(propertyData.bathrooms) || 0,
+      features: propertyData.features,
+      images: propertyData.images.filter(img => img && img.trim() !== ''),
+      amenities: propertyData.amenities,
+      rules: propertyData.rules,
+      address: {
+        street: propertyData.address.street?.trim() || '',
+        city: propertyData.address.city?.trim() || propertyData.location.substring(0, 50),
+        state: propertyData.address.state?.trim() || 'Nepal',
+        zipCode: propertyData.address.zipCode?.trim() || ''
+      },
+      availableFrom: new Date(propertyData.availableFrom).toISOString(),
+      status: 'available'
+    };
+
+    // Add conditional fields based on type
+    if (propertyData.type === 'room' && propertyData.roomType) {
+      formattedPropertyData.roomType = propertyData.roomType;
     }
 
-    // Validate conditional fields
-    if (propertyData.type === 'room' && !propertyData.roomType) {
-      toast.error('Room type is required for room properties');
-      return;
+    if ((propertyData.type === 'flat' || propertyData.type === 'apartment') && propertyData.flatType) {
+      formattedPropertyData.flatType = propertyData.flatType.toLowerCase();
     }
 
-    if (
-      (propertyData.type === 'flat' || propertyData.type === 'apartment') &&
-      !propertyData.flatType
-    ) {
-      toast.error('Flat type is required for flat/apartment properties');
-      return;
-    }
-
-    if (propertyData.images.length === 0) {
-      toast.error('At least one image is required');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Format data to match your backend's expected format
-      const formattedPropertyData = {
-        title: propertyData.title.trim(),
-        description: propertyData.description.trim(),
-        type: propertyData.type.toLowerCase(),
-        price: Number(propertyData.price),
-        location: propertyData.location.trim(),
-        area: Number(propertyData.area),
-        bedrooms: Number(propertyData.bedrooms) || 0,
-        bathrooms: Number(propertyData.bathrooms) || 0,
-        features: propertyData.features,
-        images: propertyData.images.filter((img) => img && img.trim() !== ''),
-        amenities: propertyData.amenities,
-        rules: propertyData.rules,
-        address: {
-          street: propertyData.address.street?.trim() || '',
-          city: propertyData.address.city?.trim() || propertyData.location,
-          state: propertyData.address.state?.trim() || 'Nepal',
-          zipCode: propertyData.address.zipCode?.trim() || ''
-        },
-        availableFrom: new Date(propertyData.availableFrom),
-        status: 'available' // Changed from 'pending' to match your data
+    // Add coordinates if available
+    if (coordinates.latitude && coordinates.longitude) {
+      formattedPropertyData.coordinates = {
+        latitude: parseFloat(coordinates.latitude),
+        longitude: parseFloat(coordinates.longitude),
+        accuracy: coordinates.accuracy || 1.0
       };
-
-      // Add conditional fields based on type
-      if (propertyData.type === 'room' && propertyData.roomType) {
-        formattedPropertyData.roomType = propertyData.roomType;
-      }
-
-      if ((propertyData.type === 'flat' || propertyData.type === 'apartment') && propertyData.flatType) {
-        // Convert flatType to lowercase to match backend format
-        formattedPropertyData.flatType = propertyData.flatType.toLowerCase();
-      }
-
-      // Add coordinates if available
-      if (coordinates.latitude && coordinates.longitude) {
-        formattedPropertyData.coordinates = {
-          latitude: Number(coordinates.latitude),
-          longitude: Number(coordinates.longitude),
-          accuracy: coordinates.accuracy || 1.0,
-          lastUpdated: new Date()
-        };
-      }
-
-      console.log('Formatted property data:', formattedPropertyData);
-
-      const response = await createProperty(formattedPropertyData);
-
-      if (response.success) {
-        toast.success('Property added successfully!', {
-          duration: 4000,
-          position: 'top-right',
-        });
-
-        setTimeout(() => {
-          navigate('/seller/listings');
-        }, 2000);
-      } else {
-        toast.error('Failed to add property');
-      }
-    } catch (error) {
-      console.error('Error adding property:', error);
-      toast.error('Error adding property');
-    } finally {
-      setLoading(false);
     }
-  };
+
+    console.log('Formatted property data:', formattedPropertyData);
+
+    const response = await createProperty(formattedPropertyData);
+
+    if (response.success) {
+      toast.success('Property added successfully!', {
+        duration: 4000,
+        position: 'top-right',
+      });
+
+      setTimeout(() => {
+        navigate('/seller/listings');
+      }, 2000);
+    } else {
+      toast.error(response.message || 'Failed to add property');
+    }
+  } catch (error) {
+    console.error('Error adding property:', error);
+    toast.error(error.message || 'Error adding property');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8 space-y-8">
@@ -774,25 +838,31 @@ const AddProperty = () => {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Property Address/Location *
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    name="location"
-                    value={propertyData.location}
-                    onChange={handlePropertyChange}
-                    placeholder="Enter full address (e.g., Kathmandu Metropolitan City-16, Balaju, Kathmandu)"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                  <p className="text-xs text-gray-500">
-                    Enter the complete address where your property is located. This will be used to find exact coordinates.
-                  </p>
-                </div>
-              </div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Property Address/Location *
+  </label>
+  <div className="space-y-2">
+    <input
+      type="text"
+      name="location"
+      value={propertyData.location}
+      onChange={handlePropertyChange}
+                    placeholder="Enter short address (max 50 characters)"
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      maxLength={50}
+      required
+    />
+    <p className="text-xs text-gray-500">
+      {propertyData.location.length}/50 characters. Keep it short and descriptive.
+    </p>
+    {propertyData.location.length > 50 && (
+      <p className="text-xs text-red-500">
+        Location must be 50 characters or less
+      </p>
+    )}
+  </div>
+</div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -856,42 +926,25 @@ const AddProperty = () => {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
+                  Description *
                 </label>
                 <textarea
                   name="description"
                   value={propertyData.description}
                   onChange={handlePropertyChange}
                   rows="4"
-                  placeholder="Describe your property..."
+                  placeholder="Describe your property in detail..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
                 />
-              </div>
-
-              {/* Property Address/Location - Moved here for better UX */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Property Address/Location *
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    name="location"
-                    value={propertyData.location}
-                    onChange={handlePropertyChange}
-                    placeholder="Enter full address (e.g., Kathmandu Metropolitan City-16, Balaju, Kathmandu)"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                  <p className="text-xs text-gray-500">
-                    Enter the complete address where your property is located, or use the map below to select location automatically.
-                  </p>
-                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Provide a detailed description of your property including features, condition, and any special aspects.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Address & Location Selection Section - Now separate */}
+          {/* Address & Location Selection Section */}
           <div>
             <div className="flex items-center space-x-3 mb-6">
               <div className="p-2 bg-green-100 rounded-lg">

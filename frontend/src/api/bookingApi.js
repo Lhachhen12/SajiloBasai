@@ -128,109 +128,42 @@ export const getBookingsBySellerId = async (sellerId) => {
   }
 };
 
-// Enhanced bookingApi.js functions
-
-export const esewaBooking = async (bookingData) => {
-  try {
-    console.log('Sending eSewa booking request with data:', bookingData);
-    
-    const response = await fetch(`${API_URL}/api/payments/initialize-esewa`, {
-      method: "POST",
-      headers: createHeaders(),
-      body: JSON.stringify(bookingData),
-    });
-
-    console.log('eSewa API response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('eSewa API error response:', errorText);
-      
-      // Try to parse error message from JSON response
-      try {
-        const errorData = JSON.parse(errorText);
-        const errorMessage = errorData.error || errorData.message || `Server error (${response.status})`;
-        return {
-          success: false,
-          message: errorMessage
-        };
-      } catch (parseError) {
-        return {
-          success: false,
-          message: `Server error: ${response.status} - ${errorText}`
-        };
-      }
-    }
-
-    const data = await response.json();
-    console.log('eSewa API response data:', data);
-
-    return {
-      success: true,
-      message: data.message || "eSewa payment initialized successfully",
-      paymentInitiate: data.paymentInitiate,
-      paymentUrl: data.payment_url || data.paymentUrl,
-      data: data
-    };
-  } catch (error) {
-    console.error("Error initiating Esewa payment:", error);
-    return { 
-      success: false, 
-      message: error.message || "Failed to initialize eSewa payment"
-    };
-  }
-};
-
+// Create a new booking
 export const createBooking = async (bookingData) => {
   try {
-    console.log('Sending booking request with data:', bookingData);
-    
     const response = await fetch(`${API_URL}/api/bookings`, {
       method: "POST",
       headers: createHeaders(),
       body: JSON.stringify(bookingData),
     });
 
-    console.log('Booking API response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Booking API error response:', errorText);
-      
-      // Try to parse error message from JSON response
-      try {
-        const errorData = JSON.parse(errorText);
-        const errorMessage = errorData.error || errorData.message || `Server error (${response.status})`;
-        return {
-          success: false,
-          message: errorMessage
-        };
-      } catch (parseError) {
-        return {
-          success: false,
-          message: `Server error: ${response.status} - ${errorText}`
-        };
-      }
-    }
-
-    const data = await response.json();
-    console.log('Booking API response data:', data);
-    
-    return { 
-      success: true, 
-      booking: data.data || data.booking || data, 
-      message: data.message || "Booking created successfully"
-    };
+    const data = await handleApiResponse(response);
+    return { success: true, booking: data.data, message: data.message };
   } catch (error) {
     console.error("Error creating booking:", error);
-    return { 
-      success: false, 
-      message: error.message || "Failed to create booking"
-    };
+    return { success: false, message: error.message };
   }
 };
 
-
+export const esewaBooking = async (bookingData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/payments/initialize-esewa`, {
+      method: "POST",
+      headers: createHeaders(),
+      body: JSON.stringify(bookingData),
+    });
+    const data = await handleApiResponse(response);
+    return {
+      success: true,
+      message: data.message,
+      paymentInitiate: data.paymentInitiate,
+      paymentUrl: data.payment_url,
+    };
+  } catch (error) {
+    console.error("Error initiating Esewa payment:", error);
+    return { success: false, message: error.message };
+  }
+};
 // Update booking status
 export const updateBookingStatus = async (bookingId, status) => {
   try {
